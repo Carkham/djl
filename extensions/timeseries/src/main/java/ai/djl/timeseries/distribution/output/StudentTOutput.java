@@ -15,6 +15,7 @@ package ai.djl.timeseries.distribution.output;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
+import ai.djl.timeseries.distribution.Distribution;
 import ai.djl.timeseries.distribution.DistributionLoss;
 import ai.djl.util.PairList;
 
@@ -33,14 +34,19 @@ public class StudentTOutput extends DistributionOutput {
         NDArray mu = arrays.get(0);
         NDArray sigma = arrays.get(1);
         NDArray nu = arrays.get(2);
-        sigma = sigma.getNDArrayInternal().softPlus();
-        nu = nu.getNDArrayInternal().softPlus().add(2.);
-        return new NDList(mu.squeeze(-1), sigma.squeeze(-1), nu.squeeze(-1));
+        mu = mu.squeeze(-1);
+        sigma = sigma.getNDArrayInternal().softPlus().squeeze(-1);
+        nu = nu.getNDArrayInternal().softPlus().add(2.).squeeze(-1);
+        // TODO: make setName() must be implemented
+        mu.setName("mu");
+        sigma.setName("sigma");
+        nu.setName("nu");
+        return new NDList(mu, sigma, nu);
     }
 
     /** {@inheritDoc} */
     @Override
-    public DistributionLoss makeLoss() {
+    public Distribution.DistributionBuilder<?> distributionBuilder() {
         return null;
     }
 }

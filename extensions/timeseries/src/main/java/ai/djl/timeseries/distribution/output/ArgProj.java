@@ -13,6 +13,7 @@
 
 package ai.djl.timeseries.distribution.output;
 
+import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
@@ -29,22 +30,19 @@ import java.util.function.Function;
 
 public final class ArgProj extends AbstractBlock {
 
-    private PairList<String, Integer> argsDim;
     private Block domainMap;
     private List<Block> proj;
 
     ArgProj(Builder builder) {
-        argsDim = builder.argsDim;
         proj = new ArrayList<>();
-        for (Pair<String, Integer> entry : argsDim) {
+        for (Pair<String, Integer> entry : builder.argsDim) {
             proj.add(
                     addChildBlock(
                             String.format("%s_distr_%s", builder.prefix, entry.getKey()),
                             Linear.builder().setUnits(entry.getValue()).build()));
         }
-        domainMap = addChildBlock(
-            String.format("%s_domain_map", builder.prefix),
-            builder.domainMap);
+        domainMap =
+                addChildBlock(String.format("%s_domain_map", builder.prefix), builder.domainMap);
     }
 
     @Override

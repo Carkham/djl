@@ -23,29 +23,28 @@ public abstract class DistributionOutput {
     protected PairList<String, Integer> argsDim;
 
     /**
-     * Return the corresponding projection block based on the args dimension of different ditributions.
+     * Return the corresponding projection block based on the args dimension of different
+     * ditributions.
      *
      * @return the corresponding projection block
      */
     public ArgProj getArgsProj() {
-        return ArgProj.builder()
-            .setArgsDim(argsDim)
-            .setDomainMap(this::domainMap)
-            .build();
+        return ArgProj.builder().setArgsDim(argsDim).setDomainMap(this::domainMap).build();
     }
 
     /**
-     * Return the corresponding projection block based on the args dimension of different ditributions.
+     * Return the corresponding projection block based on the args dimension of different
+     * ditributions.
      *
      * @param prefix the prefix string of projection layer block
      * @return the corresponding projection block
      */
     public ArgProj getArgsProj(String prefix) {
         return ArgProj.builder()
-            .setArgsDim(argsDim)
-            .setDomainMap(this::domainMap)
-            .optPrefix(prefix)
-            .build();
+                .setArgsDim(argsDim)
+                .setDomainMap(this::domainMap)
+                .optPrefix(prefix)
+                .build();
     }
 
     /**
@@ -61,9 +60,9 @@ public abstract class DistributionOutput {
     public abstract NDList domainMap(NDList arrays);
 
     /**
-     * Return the {@code DistributionLoss} associated with the distribution.
+     * Return the associated {@code DistributionBuilder}, given the collection of constructor arguments and, optionally, a scale tensor.
      *
-     * @return the {@code DistributionLoss}
+     * @return the associated {@code DistributionBuilder}
      */
-    public abstract DistributionLoss makeLoss();
+    public abstract Distribution.DistributionBuilder<?> distributionBuilder();
 }

@@ -15,6 +15,7 @@ package ai.djl.timeseries.distribution.output;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
+import ai.djl.timeseries.distribution.Distribution;
 import ai.djl.timeseries.distribution.DistributionLoss;
 import ai.djl.timeseries.distribution.NegativeBinomial;
 import ai.djl.util.PairList;
@@ -27,17 +28,22 @@ public final class NegativeBinomialOutput extends DistributionOutput {
         argsDim.add("alpha", 1);
     }
 
+    /** {@inheritDoc} */
     @Override
     public NDList domainMap(NDList arrays) {
         NDArray mu = arrays.get(0);
         NDArray alpha = arrays.get(1);
-        mu = mu.getNDArrayInternal().softPlus();
-        alpha = alpha.getNDArrayInternal().softPlus();
-        return new NDList(mu.squeeze(-1), alpha.squeeze(-1));
+        mu = mu.getNDArrayInternal().softPlus().squeeze(-1);
+        alpha = alpha.getNDArrayInternal().softPlus().squeeze(-1);
+        // TODO: make setName() must be implemented
+        mu.setName("mu");
+        alpha.setName("alpha");
+        return new NDList(mu, alpha);
     }
 
+    /** {@inheritDoc} */
     @Override
-    public DistributionLoss makeLoss() {
-        return new NegativeBinomial()
+    public Distribution.DistributionBuilder<?> distributionBuilder() {
+        return NegativeBinomial.builder();
     }
 }

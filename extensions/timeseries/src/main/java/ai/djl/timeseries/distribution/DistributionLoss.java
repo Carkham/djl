@@ -14,33 +14,47 @@
 package ai.djl.timeseries.distribution;
 
 import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDArrays;
 import ai.djl.ndarray.NDList;
+import ai.djl.timeseries.distribution.output.DistributionOutput;
 import ai.djl.training.loss.Loss;
 
-public abstract class DistributionLoss extends Loss {
+public class DistributionLoss extends Loss {
+
+    private DistributionOutput distrOutput;
 
     /**
      * Base class for metric with abstract update methods.
      *
      * @param name The display name of the Loss
      */
-    public DistributionLoss(String name) {
+    public DistributionLoss(String name, DistributionOutput distrOutput) {
         super(name);
+        this.distrOutput = distrOutput;
     }
 
     /** {@inheritDoc} */
     @Override
     public NDArray evaluate(NDList labels, NDList predictions) {
-        NDArray observedValues = predictions.get()
-        return null;
-    }
+        Distribution.DistributionBuilder<?> builder = distrOutput.distributionBuilder();
+        builder.setDistrArgs(predictions);
+        if (predictions.contains("scale")) {
+            builder.optScale(predictions.get("scale"));
+        }
+        if (predictions.contains("loc")) {
+            builder.optLoc(predictions.get("loc"));
+        }
 
-    /**
-     * Compute the log of the probability density/mass function evaluated at target
-     *
-     * @param target {@link NDArray} of shape (*batch_shape, *event_shape)
-     * @param distrArgs the probability distribution args
-     * @return Tensor of shape (batch_shape) containing the probability log-density for each event in target
-     */
-    public abstract NDList logProb(NDList target, NDList distrArgs);
+        NDArray loss = builder.build().logProb(labels.singletonOrThrow()).mul(-1);
+
+        if (predictions.contains("loss_weights")) {
+            NDArray lossWeights = predictions.get("loss_weights");
+            NDArray weightedValue = NDArrays.where(
+                    lossWeights.neq(0), loss.mul(lossWeights), loss.zerosLike()
+            );
+            NDArray sumWeights = lossWeights.sum(new int[]{1}).maximum(1.);
+            loss = weightedValue.sum(new int[]{1}).div(sumWeights);
+        }
+        return loss;
+    }
 }

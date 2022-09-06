@@ -15,7 +15,6 @@ package ai.djl.timeseries.distribution;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.types.Shape;
 
 public abstract class Distribution {
 
@@ -23,8 +22,33 @@ public abstract class Distribution {
      * Compute the log of the probability density/mass function evaluated at target
      *
      * @param target {@link NDArray} of shape (*batch_shape, *event_shape)
-     * @param distrArgs the probability distribution args
-     * @return Tensor of shape (batch_shape) containing the probability log-density for each event in target
+     * @return Tensor of shape (batch_shape) containing the probability log-density for each event
+     * in target
      */
-    public abstract NDList logProb(NDList target, NDList distrArgs);
+    public abstract NDArray logProb(NDArray target);
+
+    public abstract static class DistributionBuilder<T extends DistributionBuilder<T>> {
+        protected NDList distrArgs;
+        protected NDArray scale;
+        protected NDArray loc;
+
+        public T setDistrArgs(NDList distrArgs) {
+            this.distrArgs = distrArgs;
+            return self();
+        }
+
+        public T optScale(NDArray scale) {
+            this.scale = scale;
+            return self();
+        }
+
+        public T optLoc(NDArray loc) {
+            this.loc = loc;
+            return self();
+        }
+
+        public abstract Distribution build();
+
+        protected abstract T self();
+    }
 }
