@@ -13,19 +13,17 @@
 
 package ai.djl.timeseries.dataset;
 
-import ai.djl.basicdataset.tabular.CsvDataset;
 import ai.djl.basicdataset.tabular.utils.DynamicBuffer;
 import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.basicdataset.tabular.utils.PreparedFeaturizer;
-import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.timeseries.TimeSeriesData;
-import ai.djl.translate.TranslateException;
 import ai.djl.util.Pair;
 import ai.djl.util.PairList;
 import ai.djl.util.Progress;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -86,7 +84,9 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         TimeSeriesData data = new TimeSeriesData(fieldFeatures.size());
         for (Pair<FieldName, List<Feature>> pair : fieldFeatures) {
             if (!pair.getValue().isEmpty()) {
-                data.add(pair.getKey(), getRowFeatures(manager, index, pair.getValue()).singletonOrThrow());
+                data.add(
+                        pair.getKey(),
+                        getRowFeatures(manager, index, pair.getValue()).singletonOrThrow());
             }
         }
 

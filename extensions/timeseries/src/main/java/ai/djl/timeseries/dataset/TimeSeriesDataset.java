@@ -28,13 +28,14 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
     protected List<TimeSeriesTransform> transformation;
     protected int contextLength;
 
-    public static final FieldName[] DATASET_FIELD_NAMES = new FieldName[] {
-        FieldName.TARGET,
-        FieldName.FEAT_STATIC_CAT,
-        FieldName.FEAT_STATIC_REAL,
-        FieldName.FEAT_DYNAMIC_CAT,
-        FieldName.FEAT_DYNAMIC_REAL
-    };
+    public static final FieldName[] DATASET_FIELD_NAMES =
+            new FieldName[] {
+                FieldName.TARGET,
+                FieldName.FEAT_STATIC_CAT,
+                FieldName.FEAT_STATIC_REAL,
+                FieldName.FEAT_DYNAMIC_CAT,
+                FieldName.FEAT_DYNAMIC_REAL
+            };
 
     public TimeSeriesDataset(TimeSeriesBuilder<?> builder) {
         super(builder);
@@ -42,15 +43,22 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
         contextLength = builder.contextLength;
     }
 
-    /** {@code TimeseriesDataset} override the get function so that it can preprocess the feature data as timeseries package way.
-     * <p>{@inheritDoc} */
+    /**
+     * {@code TimeseriesDataset} override the get function so that it can preprocess the feature
+     * data as timeseries package way.
+     *
+     * <p>{@inheritDoc}
+     */
     @Override
     public Record get(NDManager manager, long index) {
         TimeSeriesData data = getTimeSeriesData(manager, index);
 
         data = apply(manager, data);
-        if (!data.contains("PAST_" + FieldName.TARGET) || !data.contains("FUTURE_" + FieldName.TARGET)) {
-            throw new IllegalArgumentException("Transformation must include InstanceSampler to split data into past and future part");
+        if (!data.contains("PAST_" + FieldName.TARGET)
+                || !data.contains("FUTURE_" + FieldName.TARGET)) {
+            throw new IllegalArgumentException(
+                    "Transformation must include InstanceSampler to split data into past and future"
+                        + " part");
         }
 
         NDArray contextTarget = data.get("PAST_" + FieldName.TARGET).get("{}:", -contextLength + 1);
@@ -70,7 +78,8 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
         return input;
     }
 
-    public abstract static class TimeSeriesBuilder<T extends TimeSeriesBuilder<T>> extends RandomAccessDataset.BaseBuilder<T> {
+    public abstract static class TimeSeriesBuilder<T extends TimeSeriesBuilder<T>>
+            extends RandomAccessDataset.BaseBuilder<T> {
 
         protected List<TimeSeriesTransform> transformation;
         protected int contextLength;

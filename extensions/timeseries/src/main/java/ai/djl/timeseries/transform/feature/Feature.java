@@ -64,15 +64,24 @@ public final class Feature {
      * @param data the {@link TimeSeriesData} to operate on
      */
     public static void addTimeFeature(
-        NDManager manager,
-        FieldName startField,
-        FieldName targetField,
-        FieldName outputField,
-        List<BiFunction<NDManager, List<LocalDateTime>, NDArray>> timeFeatures,
-        int predictionLength,
-        String freq,
-        TimeSeriesData data) {
-        addTimeFeature(manager, startField, targetField, outputField, timeFeatures, predictionLength, freq, data, false);
+            NDManager manager,
+            FieldName startField,
+            FieldName targetField,
+            FieldName outputField,
+            List<BiFunction<NDManager, List<LocalDateTime>, NDArray>> timeFeatures,
+            int predictionLength,
+            String freq,
+            TimeSeriesData data) {
+        addTimeFeature(
+                manager,
+                startField,
+                targetField,
+                outputField,
+                timeFeatures,
+                predictionLength,
+                freq,
+                data,
+                false);
     }
 
     /**
@@ -136,13 +145,14 @@ public final class Feature {
     }
 
     public static TimeSeriesData addAgeFeature(
-        NDManager manager,
-        FieldName targetField,
-        FieldName outputField,
-        int predictionLength,
-        boolean logScale,
-        TimeSeriesData data) {
-        return addAgeFeature(manager, targetField, outputField, predictionLength, logScale, data, false);
+            NDManager manager,
+            FieldName targetField,
+            FieldName outputField,
+            int predictionLength,
+            boolean logScale,
+            TimeSeriesData data) {
+        return addAgeFeature(
+                manager, targetField, outputField, predictionLength, logScale, data, false);
     }
 
     /**
