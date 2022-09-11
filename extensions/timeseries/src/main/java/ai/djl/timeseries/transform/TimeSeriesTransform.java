@@ -13,7 +13,14 @@
 package ai.djl.timeseries.transform;
 
 import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.Shape;
 import ai.djl.timeseries.TimeSeriesData;
+import ai.djl.timeseries.dataset.FieldName;
+import ai.djl.timeseries.transform.split.InstanceSplit;
+import org.checkerframework.checker.units.qual.Time;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** This interface is used for data transformation on the {@link TimeSeriesData}. */
 public interface TimeSeriesTransform {
@@ -23,7 +30,24 @@ public interface TimeSeriesTransform {
      *
      * @param manager The default manager for data process
      * @param data The data to be operated on
+     * @param isTrain Whether it is training
      * @return The result {@link TimeSeriesData}.
      */
-    TimeSeriesData transform(NDManager manager, TimeSeriesData data);
+    TimeSeriesData transform(NDManager manager, TimeSeriesData data, boolean isTrain);
+
+    static List<TimeSeriesTransform> identityTransformation() {
+        List<TimeSeriesTransform> ret = new ArrayList<>();
+        ret.add(new IdentityTransform());
+        return ret;
+    }
+
+    class IdentityTransform implements TimeSeriesTransform {
+
+        @Override
+        public TimeSeriesData transform(NDManager manager, TimeSeriesData data, boolean isTrain) {
+            data.setField("PAST_" + FieldName.TARGET, data.get(FieldName.TARGET));
+            data.setField("FUTURE_" + FieldName.TARGET, manager.create(new Shape(0)));
+            return data;
+        }
+    }
 }
