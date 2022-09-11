@@ -25,9 +25,22 @@ import ai.djl.timeseries.block.FeatureEmbedder;
 import ai.djl.timeseries.block.MeanScaler;
 import ai.djl.timeseries.block.NOPScaler;
 import ai.djl.timeseries.block.Scaler;
+import ai.djl.timeseries.dataset.FieldName;
 import ai.djl.timeseries.distribution.output.DistributionOutput;
 import ai.djl.timeseries.distribution.output.StudentTOutput;
 import ai.djl.timeseries.timefeature.Lag;
+import ai.djl.timeseries.timefeature.TimeFeature;
+import ai.djl.timeseries.transform.ExpectedNumInstanceSampler;
+import ai.djl.timeseries.transform.InstanceSampler;
+import ai.djl.timeseries.transform.PredictionSplitSampler;
+import ai.djl.timeseries.transform.TimeSeriesTransform;
+import ai.djl.timeseries.transform.convert.VstackFeatures;
+import ai.djl.timeseries.transform.feature.AddAgeFeature;
+import ai.djl.timeseries.transform.feature.AddTimeFeature;
+import ai.djl.timeseries.transform.field.RemoveFields;
+import ai.djl.timeseries.transform.field.SelectField;
+import ai.djl.timeseries.transform.field.SetField;
+import ai.djl.timeseries.transform.split.InstanceSplit;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
@@ -35,23 +48,53 @@ import java.util.*;
 
 public abstract class DeepARNetwork extends AbstractBlock {
 
+    private static final String[] TRAIN_INPUT_FIELDS = {
+        FieldName.FEAT_STATIC_CAT.name(),
+        FieldName.FEAT_STATIC_REAL.name(),
+        "PAST_" + FieldName.FEAT_TIME.name(),
+        "PAST_" + FieldName.TARGET.name(),
+        "PAST_" + FieldName.OBSERVED_VALUES.name(),
+        "PAST_" + FieldName.IS_PAD.name(),
+        "FUTURE_" + FieldName.FEAT_TIME.name(),
+        "FUTURE_" + FieldName.TARGET.name(),
+        "FUTURE_" + FieldName.OBSERVED_VALUES.name()
+    };
+
+    private static final String[] PRED_INPUT_FIELDS = {
+        FieldName.FEAT_STATIC_CAT.name(),
+        FieldName.FEAT_STATIC_REAL.name(),
+        "PAST_" + FieldName.FEAT_TIME.name(),
+        "PAST_" + FieldName.TARGET.name(),
+        "PAST_" + FieldName.OBSERVED_VALUES.name(),
+        "FUTURE_" + FieldName.FEAT_TIME.name(),
+        "PAST_" + FieldName.IS_PAD.name()
+    };
+
+    protected String freq;
     protected int historyLength;
     protected int contextLength;
     protected int predictionLength;
+    
+    protected boolean useFeatDynamicReal;
+    protected boolean useFeatStaticCat;
+    protected boolean useFeatStaticReal;
+    
     protected DistributionOutput distrOutput;
-    protected Block paramProj;
-    protected int numParallelSamples;
-    protected FeatureEmbedder embedder;
-    protected Scaler scaler;
-    protected int rnnInputSize;
-    protected LSTM rnn;
     protected List<Integer> cardinality;
     protected List<Integer> embeddingDimension;
+    protected List<Integer> lagsSeq;
+    protected int numParallelSamples;
+    
+    protected FeatureEmbedder embedder;
+    protected Block paramProj;
+    
+    protected LSTM rnn;
     protected int numLayers;
     protected int hiddenSize;
     protected float dropoutRate;
-    protected List<Integer> lagsSeq;
+    
     protected boolean scaling;
+    protected Scaler scaler;
 
     DeepARNetwork(Builder builder) {
         predictionLength = builder.predictionLength;
@@ -67,7 +110,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
             }
         }
         lagsSeq = builder.lagsSeq == null ? Lag.getLagsForFreq(builder.freq) : builder.lagsSeq;
-
+        historyLength = contextLength + lagsSeq.stream().max(Comparator.naturalOrder()).get();
         embedder =
                 addChildBlock(
                         "feture_embedder",
@@ -174,19 +217,121 @@ public abstract class DeepARNetwork extends AbstractBlock {
         }
     }
 
+    public List<TimeSeriesTransform> createTrainingTransformation(NDManager manager) {
+        List<TimeSeriesTransform> transformation = createTransformation(manager);
+
+        InstanceSampler sampler = new ExpectedNumInstanceSampler(
+            0, 0, predictionLength, 1.0
+        );
+        transformation.add(new InstanceSplit(
+            FieldName.TARGET,
+            FieldName.IS_PAD,
+            FieldName.START,
+            FieldName.FORECAST_START,
+            sampler,
+            historyLength,
+            predictionLength,
+            new FieldName[]{FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
+            distrOutput.getValueInSupport()
+        ));
+
+        transformation.add(new SelectField(
+            TRAIN_INPUT_FIELDS
+        ));
+        return transformation;
+    }
+
+    public List<TimeSeriesTransform> createPredictingTransformation(NDManager manager) {
+        List<TimeSeriesTransform> transformation = createTransformation(manager);
+
+        InstanceSampler sampler = PredictionSplitSampler.newValidationSplitSampler();
+        transformation.add(new InstanceSplit(
+            FieldName.TARGET,
+            FieldName.IS_PAD,
+            FieldName.START,
+            FieldName.FORECAST_START,
+            sampler,
+            historyLength,
+            predictionLength,
+            new FieldName[]{FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
+            distrOutput.getValueInSupport()
+        ));
+
+        transformation.add(new SelectField(
+            PRED_INPUT_FIELDS
+        ));
+        return transformation;
+    }
+
+    private List<TimeSeriesTransform> createTransformation(NDManager manager) {
+        List<TimeSeriesTransform> transformation = new ArrayList<>();
+
+        List<FieldName> removeFieldNames = new ArrayList<>();
+        removeFieldNames.add(FieldName.FEAT_DYNAMIC_CAT);
+        if (!useFeatStaticReal) {
+            removeFieldNames.add(FieldName.FEAT_STATIC_REAL);
+        }
+        if (!useFeatDynamicReal) {
+            removeFieldNames.add(FieldName.FEAT_DYNAMIC_REAL);
+        }
+
+        transformation.add(new RemoveFields(removeFieldNames));
+        if (!useFeatStaticCat) {
+            transformation.add(new SetField(FieldName.FEAT_STATIC_CAT, manager.zeros(new Shape(1))));
+        }
+        if (!useFeatDynamicReal) {
+            transformation.add(new SetField(FieldName.FEAT_STATIC_REAL, manager.zeros(new Shape(1))));
+        }
+
+        transformation.add(new AddTimeFeature(
+            FieldName.START,
+            FieldName.TARGET,
+            FieldName.FEAT_TIME,
+            TimeFeature.timeFeaturesFromFreqStr(freq),
+            predictionLength,
+            freq
+        ));
+
+        transformation.add(new AddAgeFeature(
+            FieldName.TARGET,
+            FieldName.FEAT_AGE,
+            predictionLength,
+            true
+        ));
+
+        FieldName[] inputFields;
+        if (!useFeatDynamicReal) {
+            inputFields = new FieldName[]{FieldName.FEAT_TIME, FieldName.FEAT_AGE};
+        } else {
+            inputFields = new FieldName[]{FieldName.FEAT_TIME, FieldName.FEAT_AGE, FieldName.FEAT_DYNAMIC_REAL};
+        }
+        transformation.add(new VstackFeatures(
+            FieldName.FEAT_TIME,
+            inputFields
+        ));
+
+        return transformation;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static final class Builder {
-        protected String freq;
-        protected int contextLength;
-        protected int predictionLength;
-        protected int numParallelSamples;
-        protected DistributionOutput distrOutput = new StudentTOutput();
-        protected List<Integer> cardinality;
-        protected List<Integer> embeddingDimension;
-        protected List<Integer> lagsSeq;
+        
+        private String freq;
+        private int contextLength;
+        private int predictionLength;
+        private int numParallelSamples;
+        
+        private boolean useFeatDynamicReal;
+        private boolean useFeatStaticCat;
+        private boolean useFeatStaticReal;
+        
+        private DistributionOutput distrOutput = new StudentTOutput();
+        private List<Integer> cardinality;
+        private List<Integer> embeddingDimension;
+        private List<Integer> lagsSeq;
 
         public Builder setFreq(String freq) {
             this.freq = freq;
@@ -225,6 +370,21 @@ public abstract class DeepARNetwork extends AbstractBlock {
 
         public Builder optLagsSeq(List<Integer> lagsSeq) {
             this.lagsSeq = lagsSeq;
+            return this;
+        }
+
+        public Builder optUseFeatDynamicReal(boolean useFeatDynamicReal) {
+            this.useFeatDynamicReal = useFeatDynamicReal;
+            return this;
+        }
+
+        public Builder optUseFeatStaticCat(boolean useFeatStaticCat) {
+            this.useFeatStaticCat = useFeatStaticCat;
+            return this;
+        }
+
+        public Builder optUseFeatStaticReal(boolean useFeatStaticReal) {
+            this.useFeatStaticReal = useFeatStaticReal;
             return this;
         }
     }

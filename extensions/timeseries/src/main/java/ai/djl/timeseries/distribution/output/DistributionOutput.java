@@ -21,6 +21,11 @@ import ai.djl.util.PairList;
 public abstract class DistributionOutput {
 
     protected PairList<String, Integer> argsDim;
+    private float valueInSupport = 0f;
+
+    public float getValueInSupport() {
+        return valueInSupport;
+    }
 
     /**
      * Return the corresponding projection block based on the args dimension of different
