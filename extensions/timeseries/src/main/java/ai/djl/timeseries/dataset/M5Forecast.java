@@ -13,6 +13,7 @@
 
 package ai.djl.timeseries.dataset;
 
+import ai.djl.basicdataset.tabular.AirfoilRandomAccess;
 import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.basicdataset.tabular.utils.Featurizers;
 import ai.djl.repository.MRL;
@@ -30,6 +31,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +49,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
     private MRL mrl;
     private boolean prepared;
     private Path root;
+    private List<Integer> cardinality;
 
     /**
      * Creates a new instance of {@link M5Forecast} with the given necessary configurations.
@@ -59,6 +62,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
         String path = builder.repository.getBaseUri().toString();
         mrl = MRL.undefined(builder.repository, DefaultModelZoo.GROUP_ID, path);
         root = Paths.get(mrl.getRepository().getBaseUri());
+        cardinality = builder.cardinality;
     }
 
     /** {@inheritDoc} */
@@ -76,6 +80,20 @@ public class M5Forecast extends CsvTimeSeriesDataset {
         prepared = true;
     }
 
+    /**
+     * Return the cardinality of the dataset
+     *
+     * @return the cardinality of the dataset
+     */
+    public List<Integer> getCardinality() {
+        return cardinality;
+    }
+
+    /**
+     * Creates a builder to build a {@link M5Forecast}.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -101,6 +119,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
         Repository repository;
         Usage usage = Usage.TRAIN;
         M5Features mf;
+        List<Integer> cardinality;
 
         Builder() {
             csvFormat =
@@ -111,6 +130,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
                             .setIgnoreHeaderCase(true)
                             .setTrim(true)
                             .build();
+            cardinality = new ArrayList<>();
         }
 
         @Override
@@ -141,6 +161,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
                             fieldName,
                             new Feature(name, Featurizers.getStringFeaturizer(onehotEncode)));
                 }
+                cardinality.add(map.size());
                 return addFieldFeature(fieldName, new Feature(name, map, onehotEncode));
             }
             return addFieldFeature(fieldName, new Feature(name, true));
