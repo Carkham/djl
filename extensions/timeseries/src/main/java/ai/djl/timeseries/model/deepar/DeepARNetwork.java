@@ -17,6 +17,7 @@ import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDArrays;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
 import ai.djl.nn.Block;
@@ -36,6 +37,7 @@ import ai.djl.timeseries.transform.PredictionSplitSampler;
 import ai.djl.timeseries.transform.TimeSeriesTransform;
 import ai.djl.timeseries.transform.convert.VstackFeatures;
 import ai.djl.timeseries.transform.feature.AddAgeFeature;
+import ai.djl.timeseries.transform.feature.AddObservedValuesIndicator;
 import ai.djl.timeseries.transform.feature.AddTimeFeature;
 import ai.djl.timeseries.transform.field.RemoveFields;
 import ai.djl.timeseries.transform.field.SelectField;
@@ -289,6 +291,11 @@ public abstract class DeepARNetwork extends AbstractBlock {
         if (!useFeatDynamicReal) {
             transformation.add(new SetField(FieldName.FEAT_STATIC_REAL, manager.zeros(new Shape(1))));
         }
+
+        transformation.add(new AddObservedValuesIndicator(
+            FieldName.TARGET,
+            FieldName.OBSERVED_VALUES
+        ));
 
         transformation.add(new AddTimeFeature(
             FieldName.START,

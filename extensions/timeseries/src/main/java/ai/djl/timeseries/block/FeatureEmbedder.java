@@ -16,8 +16,11 @@ package ai.djl.timeseries.block;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDArrays;
 import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
+import ai.djl.nn.Block;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
@@ -84,6 +87,14 @@ public class FeatureEmbedder extends AbstractBlock {
             embedSizes += embed.getOutputShapes(embedInputShapes)[0].tail();
         }
         return new Shape[] {inputShape.slice(0, inputShape.dimension() - 1).add(embedSizes)};
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+        for (Block block : embedders) {
+            block.initialize(manager, dataType, inputShapes);
+        }
     }
 
     private FeatureEmbedding createEmbedding(int i, int c, int d) {

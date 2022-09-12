@@ -38,6 +38,7 @@ import java.net.URL;
 import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -53,6 +54,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
     protected CsvTimeSeriesDataset(CsvBuilder<?> builder) {
         super(builder);
         fieldFeatures = builder.fieldFeatures;
+        startTimeFeature = builder.startTimeFeatures;
         csvUrl = builder.csvUrl;
         csvFormat = builder.csvFormat;
     }
@@ -91,6 +93,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
             }
         }
 
+        data.setStartTime(getStartTime(index));
         return data;
     }
 
@@ -101,7 +104,6 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         for (List<Feature> list : fieldFeatures.values()) {
             featuresToPrepare.addAll(list);
         }
-        featuresToPrepare.add(startTimeFeature);
         for (Feature feature : featuresToPrepare) {
             if (feature.getFeaturizer() instanceof PreparedFeaturizer) {
                 PreparedFeaturizer featurizer = (PreparedFeaturizer) feature.getFeaturizer();
@@ -114,6 +116,16 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
     }
 
+    public LocalDateTime getStartTime(long rowIndex) {
+        CSVRecord record = csvRecords.get(Math.toIntExact(rowIndex));
+        TimeFeaturizer featurizer = (TimeFeaturizer) startTimeFeature.getFeaturizer();
+        if (featurizer instanceof TimeFeaturizers.ConstantTimeFeaturizer) {
+            return featurizer.featurize(null);
+        }
+        String value = record.get(startTimeFeature.getName());
+        return featurizer.featurize(value);
+    }
+
     /**
      * Returns the designated features (either data or label features) from a row.
      *
@@ -124,7 +136,6 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
      */
     public NDList getRowFeatures(NDManager manager, long index, List<Feature> selected) {
         DynamicBuffer bb = new DynamicBuffer();
-        int i = 1;
         for (Feature feature : selected) {
             String name = feature.getName();
             String value = getCell(index, name);
@@ -234,6 +245,8 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         protected void validate() {
             if (fieldFeatures.get(FieldName.TARGET).isEmpty()) {
                 throw new IllegalArgumentException("Missing target");
+            } else if (startTimeFeatures == null) {
+                throw new IllegalArgumentException("Missing start time");
             }
         }
 

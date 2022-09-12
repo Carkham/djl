@@ -15,6 +15,8 @@ package ai.djl.timeseries.distribution.output;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
 import ai.djl.nn.Block;
@@ -46,6 +48,14 @@ public final class ArgProj extends AbstractBlock {
     }
 
     @Override
+    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+        for (Block block : proj) {
+            block.initialize(manager, dataType, inputShapes);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
     protected NDList forwardInternal(
             ParameterStore parameterStore,
             NDList inputs,
@@ -59,6 +69,7 @@ public final class ArgProj extends AbstractBlock {
         return domainMap.forward(parameterStore, paramsUnbounded, training, params);
     }
 
+    /** {@inheritDoc} */
     @Override
     public Shape[] getOutputShapes(Shape[] inputShapes) {
         Shape[] projOutShapes = new Shape[proj.size()];
