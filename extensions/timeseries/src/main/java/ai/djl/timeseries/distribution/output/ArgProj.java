@@ -93,8 +93,8 @@ public final class ArgProj extends AbstractBlock {
         }
 
         public ArgProj build() {
-            Preconditions.checkArgument(argsDim == null, "must specify dim args");
-            Preconditions.checkArgument(domainMap == null, "must specify domain PairList function");
+            Preconditions.checkArgument(argsDim != null, "must specify dim args");
+            Preconditions.checkArgument(domainMap != null, "must specify domain PairList function");
             return new ArgProj(this);
         }
     }

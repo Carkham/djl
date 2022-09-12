@@ -8,7 +8,7 @@ import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
 public final class DeepARTrainingNetwork extends DeepARNetwork {
-    public DeepARTrainingNetwork(Builder builder) {
+    DeepARTrainingNetwork(Builder builder) {
         super(builder);
     }
 

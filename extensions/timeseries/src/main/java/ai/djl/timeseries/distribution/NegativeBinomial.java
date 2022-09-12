@@ -34,8 +34,12 @@ public final class NegativeBinomial extends Distribution {
         NDArray alphaTimesMu = alpha.mul(mu);
 
         // TODO: add gammaln
-        return target.mul(alphaTimesMu.div(alphaTimesMu.add(1)))
-                        .sub(alphaInv.mul(alphaTimesMu.add(1).log()));
+        return target
+                .mul(alphaTimesMu.div(alphaTimesMu.add(1)))
+                .sub(alphaInv.mul(alphaTimesMu.add(1).log()))
+                .add(target.add(alphaInv).gammaln())
+                .sub(target.add(1.))
+                .sub(alphaInv);
     }
 
     public static Builder builder() {

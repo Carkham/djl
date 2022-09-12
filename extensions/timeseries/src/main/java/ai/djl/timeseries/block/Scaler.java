@@ -46,7 +46,7 @@ public abstract class Scaler extends AbstractBlock {
         return new Shape[] {inputShape, outputShape};
     }
 
-    public abstract static class ScalerBuilder<T extends ScalerBuilder> {
+    public abstract static class ScalerBuilder<T extends ScalerBuilder<T>> {
 
         protected int dim;
         protected boolean keepDim = false;

@@ -45,6 +45,7 @@ import java.util.zip.GZIPInputStream;
 public class CsvTimeSeriesDataset extends TimeSeriesDataset {
 
     protected PairList<FieldName, List<Feature>> fieldFeatures;
+    protected Feature startTimeFeature;
     protected URL csvUrl;
     protected CSVFormat csvFormat;
     protected List<CSVRecord> csvRecords;
@@ -100,6 +101,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         for (List<Feature> list : fieldFeatures.values()) {
             featuresToPrepare.addAll(list);
         }
+        featuresToPrepare.add(startTimeFeature);
         for (Feature feature : featuresToPrepare) {
             if (feature.getFeaturizer() instanceof PreparedFeaturizer) {
                 PreparedFeaturizer featurizer = (PreparedFeaturizer) feature.getFeaturizer();
@@ -147,6 +149,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
     public static class CsvBuilder<T extends CsvBuilder<T>> extends TimeSeriesBuilder<T> {
 
         protected PairList<FieldName, List<Feature>> fieldFeatures;
+        protected Feature startTimeFeatures;
         protected URL csvUrl;
         protected CSVFormat csvFormat;
 
@@ -213,7 +216,9 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
          * @return this builder
          */
         public T addFieldFeature(FieldName fieldName, Feature feature) {
-            if (fieldFeatures.contains(fieldName)) {
+            if (fieldName == FieldName.START) {
+                startTimeFeatures = feature;
+            } else if (fieldFeatures.contains(fieldName)) {
                 fieldFeatures.get(fieldName).add(feature);
             } else {
                 throw new IllegalArgumentException("Unsupported feature field type: " + fieldName);

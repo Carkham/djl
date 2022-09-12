@@ -42,7 +42,6 @@ import ai.djl.timeseries.transform.field.SelectField;
 import ai.djl.timeseries.transform.field.SetField;
 import ai.djl.timeseries.transform.split.InstanceSplit;
 import ai.djl.training.ParameterStore;
-import ai.djl.util.PairList;
 
 import java.util.*;
 
@@ -89,17 +88,20 @@ public abstract class DeepARNetwork extends AbstractBlock {
     protected Block paramProj;
     
     protected LSTM rnn;
-    protected int numLayers;
-    protected int hiddenSize;
-    protected float dropoutRate;
-    
-    protected boolean scaling;
     protected Scaler scaler;
 
     DeepARNetwork(Builder builder) {
+        freq = builder.freq;
         predictionLength = builder.predictionLength;
         contextLength = builder.contextLength != 0 ? builder.contextLength : predictionLength;
         distrOutput = builder.distrOutput;
+        cardinality = builder.cardinality;
+
+        useFeatStaticReal = builder.useFeatStaticReal;
+        useFeatDynamicReal = builder.useFeatDynamicReal;
+        useFeatStaticCat = builder.useFeatStaticCat;
+        numParallelSamples = builder.numParallelSamples;
+
         paramProj = addChildBlock("param_proj", distrOutput.getArgsProj());
         if (builder.embeddingDimension != null || builder.cardinality == null) {
             embeddingDimension = builder.embeddingDimension;
@@ -118,7 +120,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
                                 .setCardinalities(cardinality)
                                 .setEmbeddingDims(embeddingDimension)
                                 .build());
-        if (scaling) {
+        if (builder.scaling) {
             scaler =
                     addChildBlock(
                             "scaler",
@@ -131,13 +133,14 @@ public abstract class DeepARNetwork extends AbstractBlock {
             scaler =
                     addChildBlock("scaler", NOPScaler.builder().setDim(1).optKeepDim(true).build());
         }
+
         rnn =
                 addChildBlock(
                         "rnn_lstm",
                         LSTM.builder()
-                                .setNumLayers(numLayers)
-                                .setStateSize(hiddenSize)
-                                .optDropRate(dropoutRate)
+                                .setNumLayers(builder.numLayers)
+                                .setStateSize(builder.hiddenSize)
+                                .optDropRate(builder.dropRate)
                                 .optBatchFirst(true)
                                 .optReturnState(true)
                                 .build());
@@ -215,6 +218,10 @@ public abstract class DeepARNetwork extends AbstractBlock {
             NDArray lags = NDArrays.stack(lagsValues, -1);
             return scope.ret(lags.reshape(lags.getShape().get(0), lags.getShape().get(1), -1));
         }
+    }
+
+    public int getContextLength() {
+        return contextLength;
     }
 
     public List<TimeSeriesTransform> createTrainingTransformation(NDManager manager) {
@@ -323,10 +330,14 @@ public abstract class DeepARNetwork extends AbstractBlock {
         private int contextLength;
         private int predictionLength;
         private int numParallelSamples;
+        private int numLayers = 2;
+        private int hiddenSize = 40;
+        private float dropRate = 0.1f;
         
         private boolean useFeatDynamicReal;
         private boolean useFeatStaticCat;
         private boolean useFeatStaticReal;
+        private boolean scaling = true;
         
         private DistributionOutput distrOutput = new StudentTOutput();
         private List<Integer> cardinality;
@@ -363,6 +374,21 @@ public abstract class DeepARNetwork extends AbstractBlock {
             return this;
         }
 
+        public Builder optNumLayers(int numLayers) {
+            this.numLayers = numLayers;
+            return this;
+        }
+
+        public Builder optHiddenSize(int hiddenSize) {
+            this.hiddenSize = hiddenSize;
+            return this;
+        }
+
+        public Builder optDropRate(float dropRate) {
+            this.dropRate = dropRate;
+            return this;
+        }
+
         public Builder optEmbeddingDimension(List<Integer> embeddingDimension) {
             this.embeddingDimension = embeddingDimension;
             return this;
@@ -386,6 +412,10 @@ public abstract class DeepARNetwork extends AbstractBlock {
         public Builder optUseFeatStaticReal(boolean useFeatStaticReal) {
             this.useFeatStaticReal = useFeatStaticReal;
             return this;
+        }
+
+        public DeepARTrainingNetwork buildTrainingNetwork() {
+            return new DeepARTrainingNetwork(this);
         }
     }
 }
