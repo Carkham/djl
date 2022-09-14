@@ -108,7 +108,8 @@ public class M5Forecast extends CsvTimeSeriesDataset {
                 usagePath = "sales_train_evaluation.csv";
                 return usagePath;
             case TEST:
-                throw new UnsupportedOperationException("Test data not available.");
+                usagePath = "sales_train_process.csv";
+                return usagePath;
             default:
                 throw new UnsupportedOperationException("Data not available.");
         }

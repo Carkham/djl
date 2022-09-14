@@ -24,7 +24,7 @@ public abstract class Scaler extends AbstractBlock {
     protected int dim;
     protected boolean keepDim;
 
-    public Scaler(ScalerBuilder<?> builder) {
+    Scaler(ScalerBuilder<?> builder) {
         super(VERSION);
         dim = builder.dim;
         keepDim = builder.keepDim;
@@ -34,14 +34,14 @@ public abstract class Scaler extends AbstractBlock {
     public Shape[] getOutputShapes(Shape[] inputShapes) {
         Shape inputShape = inputShapes[0];
         Shape outputShape = new Shape();
-        if (!this.keepDim) {
-            for (int i = 0; i < inputShape.dimension(); i++) {
-                if (i != this.dim) {
-                    outputShape.add(inputShape.get(i));
+        for (int i = 0; i < inputShape.dimension(); i++) {
+            if (i != dim) {
+                outputShape = outputShape.add(inputShape.get(i));
+            } else {
+                if (keepDim) {
+                    outputShape = outputShape.add(1L);
                 }
             }
-        } else {
-            outputShape.addAll(inputShape);
         }
         return new Shape[] {inputShape, outputShape};
     }

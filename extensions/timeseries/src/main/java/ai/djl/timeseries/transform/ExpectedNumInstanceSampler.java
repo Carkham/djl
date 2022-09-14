@@ -38,7 +38,7 @@ public class ExpectedNumInstanceSampler extends InstanceSampler{
 
     @Override
     public List<Integer> call(NDArray ts) {
-        int[] bound = this.getBounds(ts);
+        int[] bound = getBounds(ts);
         int windowSize = bound[1] - bound[0] + 1;
 
         if (windowSize <= 0) {
@@ -56,9 +56,11 @@ public class ExpectedNumInstanceSampler extends InstanceSampler{
         double prob = numInstances / avgLength;
         List<Integer> indices = new ArrayList<>();
         Random random = new Random();
-        for (int i = 0; i < windowSize; i++) {
-            if (random.nextDouble() < prob) {
-                indices.add(i);
+        while (indices.size() == 0) {
+            for (int i = 0; i < windowSize; i++) {
+                if (random.nextDouble() < prob) {
+                    indices.add(i + bound[0]);
+                }
             }
         }
 

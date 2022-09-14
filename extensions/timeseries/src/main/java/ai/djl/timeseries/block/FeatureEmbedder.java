@@ -60,7 +60,7 @@ public class FeatureEmbedder extends AbstractBlock {
         if (numFeatures > 1) {
             // slice the last dimension, giving an array of length numFeatures with shape (N,T) or
             // (N)
-            catFeatureSlices = features.split(numFeatures, (int) features.getShape().tail());
+            catFeatureSlices = features.split(numFeatures, features.getShape().dimension() - 1);
         } else {
             catFeatureSlices = new NDList(features);
         }

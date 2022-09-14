@@ -33,13 +33,12 @@ public final class NegativeBinomial extends Distribution {
         NDArray alphaInv = alpha.getNDArrayInternal().rdiv(1);
         NDArray alphaTimesMu = alpha.mul(mu);
 
-        // TODO: add gammaln
         return target
-                .mul(alphaTimesMu.div(alphaTimesMu.add(1)))
+                .mul(alphaTimesMu.div(alphaTimesMu.add(1)).log())
                 .sub(alphaInv.mul(alphaTimesMu.add(1).log()))
                 .add(target.add(alphaInv).gammaln())
-                .sub(target.add(1.))
-                .sub(alphaInv);
+                .sub(target.add(1.).gammaln())
+                .sub(alphaInv.gammaln());
     }
 
     public static Builder builder() {

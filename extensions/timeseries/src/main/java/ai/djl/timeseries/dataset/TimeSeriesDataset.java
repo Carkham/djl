@@ -72,8 +72,12 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
 
     /** Apply the preprocee transformation on {@link TimeSeriesData}. */
     private TimeSeriesData apply(NDManager manager, TimeSeriesData input) {
-        for (TimeSeriesTransform transform : transformation) {
-            input = transform.transform(manager, input, true);
+        try (NDManager scope = manager.newSubManager()) {
+            input.values().forEach(array -> array.tempAttach(scope));
+            for (TimeSeriesTransform transform : transformation) {
+                input = transform.transform(manager, input, true);
+            }
+            input.values().forEach(array -> array.attach(manager));
         }
         return input;
     }

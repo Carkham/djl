@@ -81,6 +81,7 @@ public class MeanScaler extends Scaler {
             return this;
         }
 
+        /** {@inheritDoc} */
         @Override
         protected Builder self() {
             return this;

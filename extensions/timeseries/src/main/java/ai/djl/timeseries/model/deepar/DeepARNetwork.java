@@ -44,10 +44,14 @@ import ai.djl.timeseries.transform.field.SelectField;
 import ai.djl.timeseries.transform.field.SetField;
 import ai.djl.timeseries.transform.split.InstanceSplit;
 import ai.djl.training.ParameterStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public abstract class DeepARNetwork extends AbstractBlock {
+
+    protected static Logger logger = LoggerFactory.getLogger(DeepARNetwork.class);
 
     private static final String[] TRAIN_INPUT_FIELDS = {
         FieldName.FEAT_STATIC_CAT.name(),
@@ -149,52 +153,56 @@ public abstract class DeepARNetwork extends AbstractBlock {
     }
 
     protected NDList unrollLaggedRnn(ParameterStore ps, NDList inputs, boolean training) {
-        NDArray featStaticCat = inputs.get(0);
-        NDArray featStaticReal = inputs.get(1);
-        NDArray pastTimeFeat = inputs.get(2);
-        NDArray pastTarget = inputs.get(3);
-        NDArray pastObservedValues = inputs.get(4);
-        NDArray futureTimeFeat = inputs.get(5);
-        NDArray futureTarget = inputs.get(6);
+        try (NDManager scope = inputs.getManager().newSubManager()) {
+            scope.tempAttachAll(inputs);
 
-        NDArray context = pastTarget.get(":,{}:", -contextLength);
-        NDArray observedContext = pastObservedValues.get(":,{}:", -contextLength);
-        NDArray scale =
+            NDArray featStaticCat = inputs.get(0);
+            NDArray featStaticReal = inputs.get(1);
+            NDArray pastTimeFeat = inputs.get(2);
+            NDArray pastTarget = inputs.get(3);
+            NDArray pastObservedValues = inputs.get(4);
+            NDArray futureTimeFeat = inputs.get(5);
+            NDArray futureTarget = inputs.get(6);
+
+            NDArray context = pastTarget.get(":,{}:", -contextLength);
+            NDArray observedContext = pastObservedValues.get(":,{}:", -contextLength);
+            NDArray scale =
                 scaler.forward(ps, new NDList(context, observedContext), training)
-                        .get(1);
+                    .get(1);
 
-        NDArray priorSequence = pastTarget.get(":,:{}", -contextLength).div(scale);
-        NDArray sequence =
+            NDArray priorSequence = pastTarget.get(":,:{}", -contextLength).div(scale);
+            NDArray sequence =
                 futureTarget != null
-                        ? context.concat(futureTarget.get(":, :-1"), -1).div(scale)
-                        : context.div(scale);
+                    ? context.concat(futureTarget.get(":, :-1"), -1).div(scale)
+                    : context.div(scale);
 
-        NDArray embeddedCat =
+            NDArray embeddedCat =
                 embedder.forward(ps, new NDList(featStaticCat), training)
-                        .singletonOrThrow();
-        NDArray staticFeat =
+                    .singletonOrThrow();
+            NDArray staticFeat =
                 NDArrays.concat(
-                        new NDList(Arrays.asList(embeddedCat, featStaticReal, scale.log())), 1);
-        NDArray expandedStaticFeat = staticFeat.expandDims(1).repeat(1, sequence.getShape().get(1));
+                    new NDList(Arrays.asList(embeddedCat, featStaticReal, scale.log())), 1);
+            NDArray expandedStaticFeat = staticFeat.expandDims(1).repeat(1, sequence.getShape().get(1));
 
-        NDArray timeFeat =
+            NDArray timeFeat =
                 futureTimeFeat != null
-                        ? pastTimeFeat
-                                .get(":, {}:", -this.contextLength + 1)
-                                .concat(futureTimeFeat, 1)
-                        : pastTimeFeat.get(":, {}:", -this.contextLength + 1);
+                    ? pastTimeFeat
+                    .get(":, {}:", -contextLength + 1)
+                    .concat(futureTimeFeat, 1)
+                    : pastTimeFeat.get(":, {}:", -contextLength + 1);
 
-        NDArray features = expandedStaticFeat.concat(timeFeat, -1);
-        NDArray lags = laggedSequenceValues(lagsSeq, priorSequence, sequence);
+            NDArray features = expandedStaticFeat.concat(timeFeat, -1);
+            NDArray lags = laggedSequenceValues(lagsSeq, priorSequence, sequence);
 
-        NDArray rnnInput = lags.concat(features, -1);
+            NDArray rnnInput = lags.concat(features, -1);
 
-        NDList outputs = rnn.forward(ps, new NDList(rnnInput), training);
-        NDArray output = outputs.get(0);
-        NDArray newState = outputs.get(1);
+            NDList outputs = rnn.forward(ps, new NDList(rnnInput), training);
+            NDArray output = outputs.get(0);
+            NDArray newState = outputs.get(1);
 
-        NDArray params = paramProj.forward(ps, new NDList(output), training).singletonOrThrow();
-        return new NDList(params, scale, output, staticFeat, newState);
+            NDList params = paramProj.forward(ps, new NDList(output), training);
+            return scope.ret(params.addAll(new NDList(scale, output, staticFeat, newState)));
+        }
     }
 
     protected NDArray laggedSequenceValues(List<Integer> indices, NDArray priorSequence, NDArray sequence) {
@@ -212,8 +220,8 @@ public abstract class DeepARNetwork extends AbstractBlock {
                 long end = -lagIndex;
                 lagsValues.add(
                         end < 0
-                                ? sequence.get(":, {}:{}", begin, end)
-                                : sequence.get(":, {}:", begin)
+                                ? fullSequence.get(":, {}:{}", begin, end)
+                                : fullSequence.get(":, {}:", begin)
                 );
             }
 
@@ -224,6 +232,10 @@ public abstract class DeepARNetwork extends AbstractBlock {
 
     public int getContextLength() {
         return contextLength;
+    }
+
+    public int getHistoryLength() {
+        return historyLength;
     }
 
     public List<TimeSeriesTransform> createTrainingTransformation(NDManager manager) {

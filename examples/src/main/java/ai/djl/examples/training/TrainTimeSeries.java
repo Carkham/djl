@@ -20,15 +20,19 @@ import ai.djl.examples.training.util.Arguments;
 import ai.djl.metric.Metrics;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
+import ai.djl.nn.Parameter;
 import ai.djl.repository.Repository;
 import ai.djl.timeseries.dataset.FieldName;
 import ai.djl.timeseries.dataset.M5Forecast;
 import ai.djl.timeseries.dataset.TimeFeaturizers;
 import ai.djl.timeseries.distribution.DistributionLoss;
+import ai.djl.timeseries.distribution.NonZero;
 import ai.djl.timeseries.distribution.output.DistributionOutput;
 import ai.djl.timeseries.distribution.output.NegativeBinomialOutput;
 import ai.djl.timeseries.model.deepar.DeepARNetwork;
+import ai.djl.timeseries.timefeature.TimeFeature;
 import ai.djl.timeseries.transform.TimeSeriesTransform;
 import ai.djl.training.DefaultTrainingConfig;
 import ai.djl.training.EasyTrain;
@@ -38,6 +42,10 @@ import ai.djl.training.dataset.Dataset;
 import ai.djl.training.dataset.RandomAccessDataset;
 import ai.djl.training.dataset.Record;
 import ai.djl.training.evaluator.Accuracy;
+import ai.djl.training.evaluator.Coverage;
+import ai.djl.training.evaluator.Evaluator;
+import ai.djl.training.initializer.Initializer;
+import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.training.listener.SaveModelTrainingListener;
 import ai.djl.training.listener.TrainingListener;
 import ai.djl.training.util.ProgressBar;
@@ -51,8 +59,8 @@ import java.util.*;
 
 public class TrainTimeSeries {
 
-    private static String freq = "D";
-    private static int predictionLength = 28;
+    private static String freq = "W";
+    private static int predictionLength = 4;
 
     public static void main(String[] args) throws IOException, TranslateException {
         TrainTimeSeries.runExample(args);
@@ -83,16 +91,20 @@ public class TrainTimeSeries {
             try (Trainer trainer = model.newTrainer(config)) {
                 trainer.setMetrics(new Metrics());
 
+                int historyLength = trainingNetwork.getHistoryLength();
                 Shape[] inputShapes = new Shape[9];
+                // (N, num_cardinality)
                 inputShapes[0] = new Shape(1, 5);
+                // (N, num_real) if use_feat_stat_real else (N, 1)
                 inputShapes[1] = new Shape(1, 1);
-                inputShapes[2] = new Shape(1, 1121, 4);
-                inputShapes[3] = new Shape(1, 1121);
-                inputShapes[4] = new Shape(1, 1121);
-                inputShapes[5] = new Shape(1, 1121);
-                inputShapes[6] = new Shape(1, 28, 4);
-                inputShapes[7] = new Shape(1, 28);
-                inputShapes[8] = new Shape(1, 28);
+                // (N, history_length, num_time_feat + num_age_feat)
+                inputShapes[2] = new Shape(1, historyLength, TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
+                inputShapes[3] = new Shape(1, historyLength);
+                inputShapes[4] = new Shape(1, historyLength);
+                inputShapes[5] = new Shape(1, historyLength);
+                inputShapes[6] = new Shape(1, predictionLength, TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
+                inputShapes[7] = new Shape(1, predictionLength);
+                inputShapes[8] = new Shape(1, predictionLength);
                 trainer.initialize(inputShapes);
 
                 EasyTrain.fit(trainer, arguments.getEpoch(), trainSet, null);
@@ -115,8 +127,9 @@ public class TrainTimeSeries {
                 });
 
         return new DefaultTrainingConfig(new DistributionLoss("neg_bionormal", distributionOutput))
-                .addEvaluator(new Accuracy())
+                .addEvaluators(Arrays.asList(new Evaluator[] {new Accuracy(), new NonZero(), new Coverage()}))
                 .optDevices(Engine.getInstance().getDevices(arguments.getMaxGpus()))
+                .optInitializer(new XavierInitializer(), Parameter.Type.WEIGHT)
                 .addTrainingListeners(TrainingListener.Defaults.logging(outputDir))
                 .addTrainingListeners(listener);
     }
@@ -143,14 +156,14 @@ public class TrainTimeSeries {
             throws IOException {
         M5Forecast.Builder builder =
                 M5Forecast.builder()
-                        .optUsage(Dataset.Usage.TRAIN)
+                        .optUsage(Dataset.Usage.TEST)
                         .setRepository(repository)
                         .setTransformation(transformation)
                         .setContextLength(contextLength)
-                        .setSampling(32, true);
+                        .setSampling(16, true);
 
-        for (int i = 1; i <= 1913; i++) {
-            builder.addFeature("d_" + i, FieldName.TARGET);
+        for (int i = 1; i <= 277; i++) {
+            builder.addFeature("w_" + i, FieldName.TARGET);
         }
 
         M5Forecast m5Forecast =

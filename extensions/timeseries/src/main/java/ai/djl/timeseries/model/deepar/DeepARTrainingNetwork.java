@@ -21,14 +21,14 @@ public final class DeepARTrainingNetwork extends DeepARNetwork {
         Shape targetShape = inputShapes[3].slice(2);
         Shape contextShape = new Shape(1, contextLength).addAll(targetShape);
         scaler.initialize(manager, dataType, contextShape, contextShape);
-        long scaleSize = scaler.getOutputShapes(new Shape[]{contextShape, contextShape})[0].get(1);
+        long scaleSize = scaler.getOutputShapes(new Shape[]{contextShape, contextShape})[1].get(1);
 
         embedder.initialize(manager, dataType, inputShapes[0]);
         long embeddedCatSize = embedder.getOutputShapes(new Shape[]{inputShapes[0]})[0].get(1);
 
         Shape inputShape = new Shape(1, contextLength * 2L - 1).addAll(targetShape);
         Shape lagsShape = inputShape.add(lagsSeq.size());
-        long featSize = inputShapes[2].get(2) + embeddedCatSize + scaleSize;
+        long featSize = inputShapes[2].get(2) + embeddedCatSize + inputShapes[1].get(1) + scaleSize;
         Shape rnnInputShape = lagsShape.slice(0, lagsShape.dimension() - 1).add(lagsShape.tail() + featSize);
         rnn.initialize(manager, dataType, rnnInputShape);
 
@@ -58,8 +58,6 @@ public final class DeepARTrainingNetwork extends DeepARNetwork {
                 futureTimeFeat,
                 futureTarget
         ), training);
-
-        NDArray target = pastTarget.get(":, {}:", -contextLength + 1).concat(futureTarget, 1);
 
         NDArray ObservedValues = pastObservedValues.get(":, {}:", -contextLength + 1).concat(futureObservedValues, 1);
         ObservedValues.setName("loss_weights");

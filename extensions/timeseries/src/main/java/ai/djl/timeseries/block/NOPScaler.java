@@ -32,7 +32,7 @@ public class NOPScaler extends Scaler {
             boolean training,
             PairList<String, Object> params) {
         NDArray data = inputs.get(0);
-        NDArray scale = data.onesLike().mean(new int[] {this.dim}, this.keepDim);
+        NDArray scale = data.onesLike().mean(new int[] {dim}, keepDim);
         return new NDList(data, scale);
     }
 
@@ -42,6 +42,7 @@ public class NOPScaler extends Scaler {
 
     public static final class Builder extends ScalerBuilder<Builder> {
 
+        /** {@inheritDoc} */
         @Override
         protected Builder self() {
             return this;
