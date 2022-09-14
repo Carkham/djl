@@ -152,6 +152,28 @@ public abstract class DeepARNetwork extends AbstractBlock {
                                 .build());
     }
 
+    /** {@inheritDoc} */
+    @Override
+    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+
+        Shape targetShape = inputShapes[3].slice(2);
+        Shape contextShape = new Shape(1, contextLength).addAll(targetShape);
+        scaler.initialize(manager, dataType, contextShape, contextShape);
+        long scaleSize = scaler.getOutputShapes(new Shape[]{contextShape, contextShape})[1].get(1);
+
+        embedder.initialize(manager, dataType, inputShapes[0]);
+        long embeddedCatSize = embedder.getOutputShapes(new Shape[]{inputShapes[0]})[0].get(1);
+
+        Shape inputShape = new Shape(1, contextLength * 2L - 1).addAll(targetShape);
+        Shape lagsShape = inputShape.add(lagsSeq.size());
+        long featSize = inputShapes[2].get(2) + embeddedCatSize + inputShapes[1].get(1) + scaleSize;
+        Shape rnnInputShape = lagsShape.slice(0, lagsShape.dimension() - 1).add(lagsShape.tail() + featSize);
+        rnn.initialize(manager, dataType, rnnInputShape);
+
+        Shape rnnOutShape = rnn.getOutputShapes(new Shape[]{rnnInputShape})[0];
+        paramProj.initialize(manager, dataType, rnnOutShape);
+    }
+
     protected NDList unrollLaggedRnn(ParameterStore ps, NDList inputs, boolean training) {
         try (NDManager scope = inputs.getManager().newSubManager()) {
             scope.tempAttachAll(inputs);
@@ -201,6 +223,11 @@ public abstract class DeepARNetwork extends AbstractBlock {
             NDArray newState = outputs.get(1);
 
             NDList params = paramProj.forward(ps, new NDList(output), training);
+
+            scale.setName("scale");
+            output.setName("output");
+            staticFeat.setName("static_feat");
+            newState.setName("new_state");
             return scope.ret(params.addAll(new NDList(scale, output, staticFeat, newState)));
         }
     }
@@ -262,7 +289,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
         return transformation;
     }
 
-    public List<TimeSeriesTransform> createPredictingTransformation(NDManager manager) {
+    public List<TimeSeriesTransform> createPredictionTransformation(NDManager manager) {
         List<TimeSeriesTransform> transformation = createTransformation(manager);
 
         InstanceSampler sampler = PredictionSplitSampler.newValidationSplitSampler();
