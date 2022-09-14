@@ -1,10 +1,7 @@
 package ai.djl.timeseries.model.deepar;
 
 import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDArrays;
 import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
@@ -16,7 +13,11 @@ public final class DeepARTrainingNetwork extends DeepARNetwork {
 
     /** {@inheritDoc} */
     @Override
-    protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
+    protected NDList forwardInternal(
+            ParameterStore parameterStore,
+            NDList inputs,
+            boolean training,
+            PairList<String, Object> params) {
         NDArray featStaticCat = inputs.get(0);
         NDArray featStaticReal = inputs.get(1);
         NDArray pastTimeFeat = inputs.get(2);
@@ -27,17 +28,23 @@ public final class DeepARTrainingNetwork extends DeepARNetwork {
         NDArray futureTarget = inputs.get(7);
         NDArray futureObservedValues = inputs.get(8);
 
-        NDList unrollOutput = unrollLaggedRnn(parameterStore, new NDList(
-                featStaticCat,
-                featStaticReal,
-                pastTimeFeat,
-                pastTarget,
-                pastObservedValues,
-                futureTimeFeat,
-                futureTarget
-        ), training);
+        NDList unrollOutput =
+                unrollLaggedRnn(
+                        parameterStore,
+                        new NDList(
+                                featStaticCat,
+                                featStaticReal,
+                                pastTimeFeat,
+                                pastTarget,
+                                pastObservedValues,
+                                futureTimeFeat,
+                                futureTarget),
+                        training);
 
-        NDArray ObservedValues = pastObservedValues.get(":, {}:", -contextLength + 1).concat(futureObservedValues, 1);
+        NDArray ObservedValues =
+                pastObservedValues
+                        .get(":, {}:", -contextLength + 1)
+                        .concat(futureObservedValues, 1);
         ObservedValues.setName("loss_weights");
 
         unrollOutput.add(ObservedValues);

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class ExpectedNumInstanceSampler extends InstanceSampler{
+public class ExpectedNumInstanceSampler extends InstanceSampler {
 
     private double numInstances;
     private int totalLength;
@@ -29,7 +29,8 @@ public class ExpectedNumInstanceSampler extends InstanceSampler{
         this(axis, minPast, minFuture, numInstances, 0, 0);
     }
 
-    public ExpectedNumInstanceSampler(int axis, int minPast, int minFuture, double numInstances, int totalLength, int n) {
+    public ExpectedNumInstanceSampler(
+            int axis, int minPast, int minFuture, double numInstances, int totalLength, int n) {
         super(axis, minPast, minFuture);
         this.numInstances = numInstances;
         this.totalLength = totalLength;

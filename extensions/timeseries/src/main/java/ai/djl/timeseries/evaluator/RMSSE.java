@@ -4,9 +4,7 @@ import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDArrays;
 import ai.djl.ndarray.NDList;
 import ai.djl.timeseries.distribution.output.DistributionOutput;
-import ai.djl.training.evaluator.AbstractAccuracy;
 import ai.djl.training.evaluator.Evaluator;
-import ai.djl.training.loss.Loss;
 import ai.djl.util.Pair;
 
 import java.util.Map;
@@ -28,20 +26,21 @@ public class RMSSE extends Evaluator {
         this.distributionOutput = distributionOutput;
         totalLoss = new ConcurrentHashMap<>();
     }
-    
+
     protected Pair<Long, NDArray> accuracyHelper(NDList labels, NDList predictions) {
         NDArray label = labels.head();
-        NDArray prediction = distributionOutput.distributionBuilder().setDistrArgs(predictions)
-                .build().mean();
+        NDArray prediction =
+                distributionOutput.distributionBuilder().setDistrArgs(predictions).build().mean();
 
         checkLabelShapes(label, prediction);
-        NDArray MeanSquare = label.sub(prediction).square().mean(new int[]{axis});
-        NDArray scaleDenom = label.get(":, 1:").sub(label.get(":, :-1")).square().mean(new int[]{axis});
-        
+        NDArray MeanSquare = label.sub(prediction).square().mean(new int[] {axis});
+        NDArray scaleDenom =
+                label.get(":, 1:").sub(label.get(":, :-1")).square().mean(new int[] {axis});
+
         NDArray rmsse = MeanSquare.div(scaleDenom).sqrt();
         rmsse = NDArrays.where(scaleDenom.eq(0), rmsse.onesLike(), rmsse);
         long total = rmsse.countNonzero().getLong();
-        
+
         return new Pair<>(total, rmsse);
     }
 

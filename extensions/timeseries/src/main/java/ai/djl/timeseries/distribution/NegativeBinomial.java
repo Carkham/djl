@@ -14,7 +14,6 @@
 package ai.djl.timeseries.distribution;
 
 import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.util.Preconditions;
 
@@ -33,13 +32,23 @@ public final class NegativeBinomial extends Distribution {
 
         NDArray alphaInv = alpha.getNDArrayInternal().rdiv(1);
         NDArray alphaTimesMu = alpha.mul(mu);
-
-        return target
-                .mul(alphaTimesMu.div(alphaTimesMu.add(1)).log())
-                .sub(alphaInv.mul(alphaTimesMu.add(1).log()))
-                .add(target.add(alphaInv).gammaln())
-                .sub(target.add(1.).gammaln())
-                .sub(alphaInv.gammaln());
+        NDArray ret =
+                target.mul(alphaTimesMu.div(alphaTimesMu.add(1)).log())
+                        .sub(alphaInv.mul(alphaTimesMu.add(1).log()))
+                        .add(target.add(alphaInv).gammaln())
+                        .sub(target.add(1.).gammaln())
+                        .sub(alphaInv.gammaln());
+        if (ret.isNaN().any().getBoolean()) {
+            System.out.println("alphaInv");
+            System.out.println(alphaInv.toDebugString(10000, 1000, 1000, 1000));
+            System.out.println("alpha");
+            System.out.println(alpha.toDebugString(10000, 1000, 1000, 1000));
+            System.out.println("mu");
+            System.out.println(mu.toDebugString(10000, 1000, 1000, 1000));
+            System.out.println("target");
+            System.out.println(target.toDebugString(10000, 1000, 1000, 1000));
+        }
+        return ret;
     }
 
     @Override
@@ -66,8 +75,17 @@ public final class NegativeBinomial extends Distribution {
 
         @Override
         public Distribution build() {
-            Preconditions.checkArgument(distrArgs.contains("mu"), "NegativeBinomial's args must contain mu.");
-            Preconditions.checkArgument(distrArgs.contains("alpha"), "NegativeBinomial's args must contain alpha.");
+            Preconditions.checkArgument(
+                    distrArgs.contains("mu"), "NegativeBinomial's args must contain mu.");
+            Preconditions.checkArgument(
+                    distrArgs.contains("alpha"), "NegativeBinomial's args must contain alpha.");
+            if (scale != null) {
+                NDArray mu = distrArgs.get("mu");
+                mu = mu.mul(scale);
+                mu.setName("mu");
+                distrArgs.remove("mu");
+                distrArgs.add(mu);
+            }
             return new NegativeBinomial(this);
         }
 

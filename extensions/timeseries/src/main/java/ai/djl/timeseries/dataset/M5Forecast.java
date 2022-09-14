@@ -13,7 +13,6 @@
 
 package ai.djl.timeseries.dataset;
 
-import ai.djl.basicdataset.tabular.AirfoilRandomAccess;
 import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.basicdataset.tabular.utils.Featurizers;
 import ai.djl.repository.MRL;

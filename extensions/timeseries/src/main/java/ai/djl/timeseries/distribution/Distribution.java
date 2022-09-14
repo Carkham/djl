@@ -23,7 +23,7 @@ public abstract class Distribution {
      *
      * @param target {@link NDArray} of shape (*batch_shape, *event_shape)
      * @return Tensor of shape (batch_shape) containing the probability log-density for each event
-     * in target
+     *     in target
      */
     public abstract NDArray logProb(NDArray target);
 

@@ -13,7 +13,6 @@
 
 package ai.djl.timeseries.distribution.output;
 
-import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.DataType;
@@ -48,7 +47,8 @@ public final class ArgProj extends AbstractBlock {
     }
 
     @Override
-    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+    protected void initializeChildBlocks(
+            NDManager manager, DataType dataType, Shape... inputShapes) {
         for (Block block : proj) {
             block.initialize(manager, dataType, inputShapes);
         }

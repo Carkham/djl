@@ -18,9 +18,7 @@ import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.engine.Engine;
 import ai.djl.examples.training.util.Arguments;
 import ai.djl.metric.Metrics;
-import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.Parameter;
 import ai.djl.repository.Repository;
@@ -39,12 +37,6 @@ import ai.djl.training.EasyTrain;
 import ai.djl.training.Trainer;
 import ai.djl.training.TrainingResult;
 import ai.djl.training.dataset.Dataset;
-import ai.djl.training.dataset.RandomAccessDataset;
-import ai.djl.training.dataset.Record;
-import ai.djl.training.evaluator.Accuracy;
-import ai.djl.training.evaluator.Coverage;
-import ai.djl.training.evaluator.Evaluator;
-import ai.djl.training.initializer.Initializer;
 import ai.djl.training.initializer.XavierInitializer;
 import ai.djl.training.listener.SaveModelTrainingListener;
 import ai.djl.training.listener.TrainingListener;
@@ -53,7 +45,6 @@ import ai.djl.translate.TranslateException;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -68,11 +59,11 @@ public class TrainTimeSeries {
 
     public static TrainingResult runExample(String[] args) throws IOException, TranslateException {
         Repository repository =
-            Repository.newInstance(
-                "test",
-                Paths.get(
-                    System.getProperty("user.home")
-                        + "/Desktop/m5-forecasting-accuracy"));
+                Repository.newInstance(
+                        "test",
+                        Paths.get(
+                                System.getProperty("user.home")
+                                        + "/Desktop/m5-forecasting-accuracy"));
 
         Arguments arguments = new Arguments().parseArgs(args);
         try (Model model = Model.newInstance("deepar")) {
@@ -83,10 +74,10 @@ public class TrainTimeSeries {
             DeepARNetwork trainingNetwork = getDeepARModel(distributionOutput);
             model.setBlock(trainingNetwork);
             List<TimeSeriesTransform> transformation =
-                trainingNetwork.createTrainingTransformation(manager);
+                    trainingNetwork.createTrainingTransformation(manager);
             int contextLength = trainingNetwork.getContextLength();
 
-            RandomAccessDataset trainSet = getDataset(transformation, repository, contextLength);
+            M5Forecast trainSet = getDataset(transformation, repository, contextLength);
 
             try (Trainer trainer = model.newTrainer(config)) {
                 trainer.setMetrics(new Metrics());
@@ -98,11 +89,19 @@ public class TrainTimeSeries {
                 // (N, num_real) if use_feat_stat_real else (N, 1)
                 inputShapes[1] = new Shape(1, 1);
                 // (N, history_length, num_time_feat + num_age_feat)
-                inputShapes[2] = new Shape(1, historyLength, TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
+                inputShapes[2] =
+                        new Shape(
+                                1,
+                                historyLength,
+                                TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
                 inputShapes[3] = new Shape(1, historyLength);
                 inputShapes[4] = new Shape(1, historyLength);
                 inputShapes[5] = new Shape(1, historyLength);
-                inputShapes[6] = new Shape(1, predictionLength, TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
+                inputShapes[6] =
+                        new Shape(
+                                1,
+                                predictionLength,
+                                TimeFeature.timeFeaturesFromFreqStr(freq).size() + 1);
                 inputShapes[7] = new Shape(1, predictionLength);
                 inputShapes[8] = new Shape(1, predictionLength);
                 trainer.initialize(inputShapes);

@@ -44,6 +44,7 @@ import ai.djl.timeseries.transform.field.SelectField;
 import ai.djl.timeseries.transform.field.SetField;
 import ai.djl.timeseries.transform.split.InstanceSplit;
 import ai.djl.training.ParameterStore;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,20 +80,20 @@ public abstract class DeepARNetwork extends AbstractBlock {
     protected int historyLength;
     protected int contextLength;
     protected int predictionLength;
-    
+
     protected boolean useFeatDynamicReal;
     protected boolean useFeatStaticCat;
     protected boolean useFeatStaticReal;
-    
+
     protected DistributionOutput distrOutput;
     protected List<Integer> cardinality;
     protected List<Integer> embeddingDimension;
     protected List<Integer> lagsSeq;
     protected int numParallelSamples;
-    
+
     protected FeatureEmbedder embedder;
     protected Block paramProj;
-    
+
     protected LSTM rnn;
     protected Scaler scaler;
 
@@ -154,23 +155,25 @@ public abstract class DeepARNetwork extends AbstractBlock {
 
     /** {@inheritDoc} */
     @Override
-    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+    protected void initializeChildBlocks(
+            NDManager manager, DataType dataType, Shape... inputShapes) {
 
         Shape targetShape = inputShapes[3].slice(2);
         Shape contextShape = new Shape(1, contextLength).addAll(targetShape);
         scaler.initialize(manager, dataType, contextShape, contextShape);
-        long scaleSize = scaler.getOutputShapes(new Shape[]{contextShape, contextShape})[1].get(1);
+        long scaleSize = scaler.getOutputShapes(new Shape[] {contextShape, contextShape})[1].get(1);
 
         embedder.initialize(manager, dataType, inputShapes[0]);
-        long embeddedCatSize = embedder.getOutputShapes(new Shape[]{inputShapes[0]})[0].get(1);
+        long embeddedCatSize = embedder.getOutputShapes(new Shape[] {inputShapes[0]})[0].get(1);
 
         Shape inputShape = new Shape(1, contextLength * 2L - 1).addAll(targetShape);
         Shape lagsShape = inputShape.add(lagsSeq.size());
         long featSize = inputShapes[2].get(2) + embeddedCatSize + inputShapes[1].get(1) + scaleSize;
-        Shape rnnInputShape = lagsShape.slice(0, lagsShape.dimension() - 1).add(lagsShape.tail() + featSize);
+        Shape rnnInputShape =
+                lagsShape.slice(0, lagsShape.dimension() - 1).add(lagsShape.tail() + featSize);
         rnn.initialize(manager, dataType, rnnInputShape);
 
-        Shape rnnOutShape = rnn.getOutputShapes(new Shape[]{rnnInputShape})[0];
+        Shape rnnOutShape = rnn.getOutputShapes(new Shape[] {rnnInputShape})[0];
         paramProj.initialize(manager, dataType, rnnOutShape);
     }
 
@@ -189,29 +192,28 @@ public abstract class DeepARNetwork extends AbstractBlock {
             NDArray context = pastTarget.get(":,{}:", -contextLength);
             NDArray observedContext = pastObservedValues.get(":,{}:", -contextLength);
             NDArray scale =
-                scaler.forward(ps, new NDList(context, observedContext), training)
-                    .get(1);
+                    scaler.forward(ps, new NDList(context, observedContext), training).get(1);
 
             NDArray priorSequence = pastTarget.get(":,:{}", -contextLength).div(scale);
             NDArray sequence =
-                futureTarget != null
-                    ? context.concat(futureTarget.get(":, :-1"), -1).div(scale)
-                    : context.div(scale);
+                    futureTarget != null
+                            ? context.concat(futureTarget.get(":, :-1"), -1).div(scale)
+                            : context.div(scale);
 
             NDArray embeddedCat =
-                embedder.forward(ps, new NDList(featStaticCat), training)
-                    .singletonOrThrow();
+                    embedder.forward(ps, new NDList(featStaticCat), training).singletonOrThrow();
             NDArray staticFeat =
-                NDArrays.concat(
-                    new NDList(Arrays.asList(embeddedCat, featStaticReal, scale.log())), 1);
-            NDArray expandedStaticFeat = staticFeat.expandDims(1).repeat(1, sequence.getShape().get(1));
+                    NDArrays.concat(
+                            new NDList(Arrays.asList(embeddedCat, featStaticReal, scale.log())), 1);
+            NDArray expandedStaticFeat =
+                    staticFeat.expandDims(1).repeat(1, sequence.getShape().get(1));
 
             NDArray timeFeat =
-                futureTimeFeat != null
-                    ? pastTimeFeat
-                    .get(":, {}:", -contextLength + 1)
-                    .concat(futureTimeFeat, 1)
-                    : pastTimeFeat.get(":, {}:", -contextLength + 1);
+                    futureTimeFeat != null
+                            ? pastTimeFeat
+                                    .get(":, {}:", -contextLength + 1)
+                                    .concat(futureTimeFeat, 1)
+                            : pastTimeFeat.get(":, {}:", -contextLength + 1);
 
             NDArray features = expandedStaticFeat.concat(timeFeat, -1);
             NDArray lags = laggedSequenceValues(lagsSeq, priorSequence, sequence);
@@ -232,10 +234,14 @@ public abstract class DeepARNetwork extends AbstractBlock {
         }
     }
 
-    protected NDArray laggedSequenceValues(List<Integer> indices, NDArray priorSequence, NDArray sequence) {
+    protected NDArray laggedSequenceValues(
+            List<Integer> indices, NDArray priorSequence, NDArray sequence) {
         if (Collections.max(indices) > (int) priorSequence.getShape().get(1)) {
             throw new IllegalArgumentException(
-                    String.format("lags cannot go further than prior sequence length, found lag %d while prior sequence is only %d-long", Collections.max(indices), priorSequence.getShape().get(1)));
+                    String.format(
+                            "lags cannot go further than prior sequence length, found lag %d while"
+                                + " prior sequence is only %d-long",
+                            Collections.max(indices), priorSequence.getShape().get(1)));
         }
         try (NDManager scope = NDManager.subManagerOf(priorSequence)) {
             scope.tempAttachAll(priorSequence, sequence);
@@ -248,8 +254,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
                 lagsValues.add(
                         end < 0
                                 ? fullSequence.get(":, {}:{}", begin, end)
-                                : fullSequence.get(":, {}:", begin)
-                );
+                                : fullSequence.get(":, {}:", begin));
             }
 
             NDArray lags = NDArrays.stack(lagsValues, -1);
@@ -268,24 +273,20 @@ public abstract class DeepARNetwork extends AbstractBlock {
     public List<TimeSeriesTransform> createTrainingTransformation(NDManager manager) {
         List<TimeSeriesTransform> transformation = createTransformation(manager);
 
-        InstanceSampler sampler = new ExpectedNumInstanceSampler(
-            0, 0, predictionLength, 1.0
-        );
-        transformation.add(new InstanceSplit(
-            FieldName.TARGET,
-            FieldName.IS_PAD,
-            FieldName.START,
-            FieldName.FORECAST_START,
-            sampler,
-            historyLength,
-            predictionLength,
-            new FieldName[]{FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
-            distrOutput.getValueInSupport()
-        ));
+        InstanceSampler sampler = new ExpectedNumInstanceSampler(0, 0, predictionLength, 1.0);
+        transformation.add(
+                new InstanceSplit(
+                        FieldName.TARGET,
+                        FieldName.IS_PAD,
+                        FieldName.START,
+                        FieldName.FORECAST_START,
+                        sampler,
+                        historyLength,
+                        predictionLength,
+                        new FieldName[] {FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
+                        distrOutput.getValueInSupport()));
 
-        transformation.add(new SelectField(
-            TRAIN_INPUT_FIELDS
-        ));
+        transformation.add(new SelectField(TRAIN_INPUT_FIELDS));
         return transformation;
     }
 
@@ -293,21 +294,19 @@ public abstract class DeepARNetwork extends AbstractBlock {
         List<TimeSeriesTransform> transformation = createTransformation(manager);
 
         InstanceSampler sampler = PredictionSplitSampler.newValidationSplitSampler();
-        transformation.add(new InstanceSplit(
-            FieldName.TARGET,
-            FieldName.IS_PAD,
-            FieldName.START,
-            FieldName.FORECAST_START,
-            sampler,
-            historyLength,
-            predictionLength,
-            new FieldName[]{FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
-            distrOutput.getValueInSupport()
-        ));
+        transformation.add(
+                new InstanceSplit(
+                        FieldName.TARGET,
+                        FieldName.IS_PAD,
+                        FieldName.START,
+                        FieldName.FORECAST_START,
+                        sampler,
+                        historyLength,
+                        predictionLength,
+                        new FieldName[] {FieldName.FEAT_TIME, FieldName.OBSERVED_VALUES},
+                        distrOutput.getValueInSupport()));
 
-        transformation.add(new SelectField(
-            PRED_INPUT_FIELDS
-        ));
+        transformation.add(new SelectField(PRED_INPUT_FIELDS));
         return transformation;
     }
 
@@ -325,43 +324,39 @@ public abstract class DeepARNetwork extends AbstractBlock {
 
         transformation.add(new RemoveFields(removeFieldNames));
         if (!useFeatStaticCat) {
-            transformation.add(new SetField(FieldName.FEAT_STATIC_CAT, manager.zeros(new Shape(1))));
+            transformation.add(
+                    new SetField(FieldName.FEAT_STATIC_CAT, manager.zeros(new Shape(1))));
         }
         if (!useFeatDynamicReal) {
-            transformation.add(new SetField(FieldName.FEAT_STATIC_REAL, manager.zeros(new Shape(1))));
+            transformation.add(
+                    new SetField(FieldName.FEAT_STATIC_REAL, manager.zeros(new Shape(1))));
         }
 
-        transformation.add(new AddObservedValuesIndicator(
-            FieldName.TARGET,
-            FieldName.OBSERVED_VALUES
-        ));
+        transformation.add(
+                new AddObservedValuesIndicator(FieldName.TARGET, FieldName.OBSERVED_VALUES));
 
-        transformation.add(new AddTimeFeature(
-            FieldName.START,
-            FieldName.TARGET,
-            FieldName.FEAT_TIME,
-            TimeFeature.timeFeaturesFromFreqStr(freq),
-            predictionLength,
-            freq
-        ));
+        transformation.add(
+                new AddTimeFeature(
+                        FieldName.START,
+                        FieldName.TARGET,
+                        FieldName.FEAT_TIME,
+                        TimeFeature.timeFeaturesFromFreqStr(freq),
+                        predictionLength,
+                        freq));
 
-        transformation.add(new AddAgeFeature(
-            FieldName.TARGET,
-            FieldName.FEAT_AGE,
-            predictionLength,
-            true
-        ));
+        transformation.add(
+                new AddAgeFeature(FieldName.TARGET, FieldName.FEAT_AGE, predictionLength, true));
 
         FieldName[] inputFields;
         if (!useFeatDynamicReal) {
-            inputFields = new FieldName[]{FieldName.FEAT_TIME, FieldName.FEAT_AGE};
+            inputFields = new FieldName[] {FieldName.FEAT_TIME, FieldName.FEAT_AGE};
         } else {
-            inputFields = new FieldName[]{FieldName.FEAT_TIME, FieldName.FEAT_AGE, FieldName.FEAT_DYNAMIC_REAL};
+            inputFields =
+                    new FieldName[] {
+                        FieldName.FEAT_TIME, FieldName.FEAT_AGE, FieldName.FEAT_DYNAMIC_REAL
+                    };
         }
-        transformation.add(new VstackFeatures(
-            FieldName.FEAT_TIME,
-            inputFields
-        ));
+        transformation.add(new VstackFeatures(FieldName.FEAT_TIME, inputFields));
 
         return transformation;
     }
@@ -371,7 +366,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
     }
 
     public static final class Builder {
-        
+
         private String freq;
         private int contextLength;
         private int predictionLength;
@@ -379,12 +374,12 @@ public abstract class DeepARNetwork extends AbstractBlock {
         private int numLayers = 2;
         private int hiddenSize = 40;
         private float dropRate = 0.1f;
-        
+
         private boolean useFeatDynamicReal;
         private boolean useFeatStaticCat;
         private boolean useFeatStaticReal;
         private boolean scaling = true;
-        
+
         private DistributionOutput distrOutput = new StudentTOutput();
         private List<Integer> cardinality;
         private List<Integer> embeddingDimension;

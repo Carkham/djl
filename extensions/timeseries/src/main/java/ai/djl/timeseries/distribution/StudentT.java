@@ -6,7 +6,7 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.util.Preconditions;
 
 public class StudentT extends Distribution {
-    
+
     private NDArray mu;
     private NDArray sigma;
     private NDArray nu;
@@ -22,10 +22,11 @@ public class StudentT extends Distribution {
         NDArray nup1Half = nu.add(1.).div(2.);
         NDArray part1 = nu.getNDArrayInternal().rdiv(1.).mul(target.sub(mu).div(sigma).square());
 
-        NDArray z = nup1Half.gammaln()
-            .sub(nu.sub(2.).gammaln())
-            .sub(nu.mul(Math.PI).log().mul(0.5))
-            .sub(sigma.log());
+        NDArray z =
+                nup1Half.gammaln()
+                        .sub(nu.sub(2.).gammaln())
+                        .sub(nu.mul(Math.PI).log().mul(0.5))
+                        .sub(sigma.log());
 
         return z.sub(nup1Half).mul(part1.add(1.).log());
     }
@@ -37,7 +38,10 @@ public class StudentT extends Distribution {
         NDArray expandedSigma = sigma.expandDims(0).repeat(0, numSamples);
         NDArray expandedNu = nu.expandDims(0).repeat(0, numSamples);
 
-        NDArray gammas = manager.sampleGamma(expandedNu.div(2.), expandedNu.mul(expandedSigma.square()).getNDArrayInternal().rdiv(2.));
+        NDArray gammas =
+                manager.sampleGamma(
+                        expandedNu.div(2.),
+                        expandedNu.mul(expandedSigma.square()).getNDArrayInternal().rdiv(2.));
         return manager.sampleNormal(expandedMu, gammas.sqrt().getNDArrayInternal().rdiv(1.));
     }
 
@@ -54,10 +58,17 @@ public class StudentT extends Distribution {
 
         @Override
         public Distribution build() {
-            Preconditions.checkArgument(distrArgs.contains("mu"), "StudentTl's args must contain mu.");
-            Preconditions.checkArgument(distrArgs.contains("sigma"), "StudentTl's args must contain sigma.");
-            Preconditions.checkArgument(distrArgs.contains("nu"), "StudentTl's args must contain nu.");
-            return new StudentT(this);
+            Preconditions.checkArgument(
+                    distrArgs.contains("mu"), "StudentTl's args must contain mu.");
+            Preconditions.checkArgument(
+                    distrArgs.contains("sigma"), "StudentTl's args must contain sigma.");
+            Preconditions.checkArgument(
+                    distrArgs.contains("nu"), "StudentTl's args must contain nu.");
+            StudentT baseDistr = new StudentT(this);
+            if (scale == null && loc == null) {
+                return baseDistr;
+            }
+            return new AffineTransformed(baseDistr, loc, scale);
         }
 
         @Override

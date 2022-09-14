@@ -91,7 +91,8 @@ public class FeatureEmbedder extends AbstractBlock {
 
     /** {@inheritDoc} */
     @Override
-    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
+    protected void initializeChildBlocks(
+            NDManager manager, DataType dataType, Shape... inputShapes) {
         for (Block block : embedders) {
             block.initialize(manager, dataType, inputShapes);
         }

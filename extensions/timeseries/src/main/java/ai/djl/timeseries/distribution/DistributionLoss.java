@@ -49,11 +49,20 @@ public class DistributionLoss extends Loss {
 
         if (predictions.contains("loss_weights")) {
             NDArray lossWeights = predictions.get("loss_weights");
-            NDArray weightedValue = NDArrays.where(
-                    lossWeights.neq(0), loss.mul(lossWeights), loss.zerosLike()
-            );
-            NDArray sumWeights = lossWeights.sum(new int[]{1}).maximum(1.);
-            loss = weightedValue.sum(new int[]{1}).div(sumWeights);
+            NDArray weightedValue =
+                    NDArrays.where(lossWeights.neq(0), loss.mul(lossWeights), loss.zerosLike());
+            NDArray sumWeights = lossWeights.sum(new int[] {1}).maximum(1.);
+            loss = weightedValue.sum(new int[] {1}).div(sumWeights);
+            if (loss.isNaN().any().getBoolean()) {
+                System.out.println("loss_weights");
+                System.out.println(lossWeights.toDebugString(1000, 1000, 1000, 1000));
+                System.out.println("weighted_value");
+                System.out.println(weightedValue.toDebugString(1000, 1000, 1000, 1000));
+                System.out.println("sum_weights");
+                System.out.println(sumWeights.toDebugString(1000, 1000, 1000, 1000));
+                System.out.println("loss");
+                System.out.println(loss.toDebugString(1000, 1000, 1000, 1000));
+            }
         }
         return loss;
     }

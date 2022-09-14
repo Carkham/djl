@@ -27,7 +27,11 @@ public class DeepARPredictionNetwork extends DeepARNetwork {
 
     /** {@inheritDoc} */
     @Override
-    protected NDList forwardInternal(ParameterStore parameterStore, NDList inputs, boolean training, PairList<String, Object> params) {
+    protected NDList forwardInternal(
+            ParameterStore parameterStore,
+            NDList inputs,
+            boolean training,
+            PairList<String, Object> params) {
         NDList unrollOutput = unrollLaggedRnn(parameterStore, inputs, training);
         return null;
     }

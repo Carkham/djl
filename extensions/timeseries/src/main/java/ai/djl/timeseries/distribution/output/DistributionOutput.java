@@ -15,7 +15,6 @@ package ai.djl.timeseries.distribution.output;
 
 import ai.djl.ndarray.NDList;
 import ai.djl.timeseries.distribution.Distribution;
-import ai.djl.timeseries.distribution.DistributionLoss;
 import ai.djl.util.PairList;
 
 public abstract class DistributionOutput {
@@ -65,7 +64,8 @@ public abstract class DistributionOutput {
     public abstract NDList domainMap(NDList arrays);
 
     /**
-     * Return the associated {@code DistributionBuilder}, given the collection of constructor arguments and, optionally, a scale tensor.
+     * Return the associated {@code DistributionBuilder}, given the collection of constructor
+     * arguments and, optionally, a scale tensor.
      *
      * @return the associated {@code DistributionBuilder}
      */
