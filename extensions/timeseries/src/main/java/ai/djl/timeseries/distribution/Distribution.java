@@ -27,6 +27,23 @@ public abstract class Distribution {
      */
     public abstract NDArray logProb(NDArray target);
 
+    /**
+     * Draw samples from the distribution.
+     *
+     * <p>The first dimension of the output will be numSamples.
+     *
+     * @param numSamples Number of samples to be drawn
+     * @return a {@link NDArray} has shape (num_samples, *batch_shape, *target_shape)
+     */
+    public abstract NDArray sample(int numSamples);
+
+    /**
+     * Return the mean of the distribution.
+     *
+     * @return the mean of the distribution
+     */
+    public abstract NDArray mean();
+
     public abstract static class DistributionBuilder<T extends DistributionBuilder<T>> {
         protected NDList distrArgs;
         protected NDArray scale;

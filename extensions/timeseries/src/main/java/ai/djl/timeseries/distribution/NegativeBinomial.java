@@ -15,6 +15,7 @@ package ai.djl.timeseries.distribution;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
 import ai.djl.util.Preconditions;
 
 public final class NegativeBinomial extends Distribution {
@@ -39,6 +40,22 @@ public final class NegativeBinomial extends Distribution {
                 .add(target.add(alphaInv).gammaln())
                 .sub(target.add(1.).gammaln())
                 .sub(alphaInv.gammaln());
+    }
+
+    @Override
+    public NDArray sample(int numSamples) {
+        NDManager manager = mu.getManager();
+        NDArray expandedMu = mu.expandDims(0).repeat(0, numSamples);
+        NDArray expandedAlpha = alpha.expandDims(0).repeat(0, numSamples);
+
+        NDArray r = expandedAlpha.getNDArrayInternal().rdiv(1f);
+        NDArray theta = expandedAlpha.mul(expandedMu);
+        return manager.samplePoisson(manager.sampleGamma(r, theta));
+    }
+
+    @Override
+    public NDArray mean() {
+        return mu;
     }
 
     public static Builder builder() {

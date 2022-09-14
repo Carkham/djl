@@ -1,6 +1,8 @@
 package ai.djl.timeseries.distribution;
 
 import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDArrays;
+import ai.djl.ndarray.NDManager;
 import ai.djl.util.Preconditions;
 
 public class StudentT extends Distribution {
@@ -26,6 +28,22 @@ public class StudentT extends Distribution {
             .sub(sigma.log());
 
         return z.sub(nup1Half).mul(part1.add(1.).log());
+    }
+
+    @Override
+    public NDArray sample(int numSamples) {
+        NDManager manager = mu.getManager();
+        NDArray expandedMu = mu.expandDims(0).repeat(0, numSamples);
+        NDArray expandedSigma = sigma.expandDims(0).repeat(0, numSamples);
+        NDArray expandedNu = nu.expandDims(0).repeat(0, numSamples);
+
+        NDArray gammas = manager.sampleGamma(expandedNu.div(2.), expandedNu.mul(expandedSigma.square()).getNDArrayInternal().rdiv(2.));
+        return manager.sampleNormal(expandedMu, gammas.sqrt().getNDArrayInternal().rdiv(1.));
+    }
+
+    @Override
+    public NDArray mean() {
+        return NDArrays.where(nu.gt(1.0), mu, mu.getManager().full(mu.getShape(), Float.NaN));
     }
 
     public static Builder builder() {

@@ -28,9 +28,9 @@ import ai.djl.timeseries.dataset.FieldName;
 import ai.djl.timeseries.dataset.M5Forecast;
 import ai.djl.timeseries.dataset.TimeFeaturizers;
 import ai.djl.timeseries.distribution.DistributionLoss;
-import ai.djl.timeseries.distribution.NonZero;
 import ai.djl.timeseries.distribution.output.DistributionOutput;
 import ai.djl.timeseries.distribution.output.NegativeBinomialOutput;
+import ai.djl.timeseries.evaluator.RMSSE;
 import ai.djl.timeseries.model.deepar.DeepARNetwork;
 import ai.djl.timeseries.timefeature.TimeFeature;
 import ai.djl.timeseries.transform.TimeSeriesTransform;
@@ -121,13 +121,13 @@ public class TrainTimeSeries {
                 trainer -> {
                     TrainingResult result = trainer.getTrainingResult();
                     Model model = trainer.getModel();
-                    float accuracy = result.getValidateEvaluation("Accuracy");
-                    model.setProperty("Accuracy", String.format("%.5f", accuracy));
+                    float rmsse = result.getValidateEvaluation("RMSSE");
+                    model.setProperty("RMSSE", String.format("%.5f", rmsse));
                     model.setProperty("Loss", String.format("%.5f", result.getValidateLoss()));
                 });
 
         return new DefaultTrainingConfig(new DistributionLoss("neg_bionormal", distributionOutput))
-                .addEvaluators(Arrays.asList(new Evaluator[] {new Accuracy(), new NonZero(), new Coverage()}))
+                .addEvaluator(new RMSSE(distributionOutput))
                 .optDevices(Engine.getInstance().getDevices(arguments.getMaxGpus()))
                 .optInitializer(new XavierInitializer(), Parameter.Type.WEIGHT)
                 .addTrainingListeners(TrainingListener.Defaults.logging(outputDir))
