@@ -33,14 +33,21 @@ public interface TimeSeriesTransform {
      */
     TimeSeriesData transform(NDManager manager, TimeSeriesData data, boolean isTrain);
 
+    /**
+     * Construct a list of {@link TimeSeriesTransform} that performs identity function.
+     *
+     * @return a list of identity {@link TimeSeriesTransform}
+     */
     static List<TimeSeriesTransform> identityTransformation() {
         List<TimeSeriesTransform> ret = new ArrayList<>();
         ret.add(new IdentityTransform());
         return ret;
     }
 
+    /** An identity transformation. */
     class IdentityTransform implements TimeSeriesTransform {
 
+        /** {@inheritDoc} */
         @Override
         public TimeSeriesData transform(NDManager manager, TimeSeriesData data, boolean isTrain) {
             data.setField("PAST_" + FieldName.TARGET, data.get(FieldName.TARGET));

@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
+/** {@code CsvTimeSeriesDataset} represents the dataset that store in a .csv file. */
 public class CsvTimeSeriesDataset extends TimeSeriesDataset {
 
     protected PairList<FieldName, List<Feature>> fieldFeatures;
@@ -82,6 +83,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         return new BufferedInputStream(csvUrl.openStream());
     }
 
+    /** {@inheritDoc} */
     @Override
     public TimeSeriesData getTimeSeriesData(NDManager manager, long index) {
         TimeSeriesData data = new TimeSeriesData(fieldFeatures.size());
@@ -97,7 +99,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         return data;
     }
 
-    /** Prepares the {@link ai.djl.basicdataset.tabular.utils.PreparedFeaturizer}s. */
+    /** Prepares the {@link PreparedFeaturizer}s. */
     protected void prepareFeaturizers() {
         int availableSize = Math.toIntExact(availableSize());
         List<Feature> featuresToPrepare = new ArrayList<>();
@@ -116,6 +118,12 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
     }
 
+    /**
+     * Return the prediction start time for the given index.
+     *
+     * @param rowIndex the row index
+     * @return the start time
+     */
     public LocalDateTime getStartTime(long rowIndex) {
         CSVRecord record = csvRecords.get(Math.toIntExact(rowIndex));
         TimeFeaturizer featurizer = (TimeFeaturizer) startTimeFeature.getFeaturizer();
@@ -157,6 +165,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         return record.get(featureName);
     }
 
+    /** Used to build a {@code CsvTimeSeriesDataset}. */
     public static class CsvBuilder<T extends CsvBuilder<T>> extends TimeSeriesBuilder<T> {
 
         protected PairList<FieldName, List<Feature>> fieldFeatures;
@@ -179,7 +188,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Sets the optional CSV file path.
+         * Set the optional CSV file path.
          *
          * @param csvFile the CSV file path
          * @return this builder
@@ -194,7 +203,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Sets the optional CSV file URL.
+         * Set the optional CSV file URL.
          *
          * @param csvUrl the CSV file URL
          * @return this builder
@@ -209,7 +218,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Sets the CSV file format.
+         * Set the CSV file format.
          *
          * @param csvFormat the {@code CSVFormat}
          * @return this builder
@@ -220,7 +229,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Adds the features to the correspongding {@link FieldName}.
+         * Add the features to the correspongding {@link FieldName}.
          *
          * @param fieldName the correspongding {@link FieldName}
          * @param feature the feature
@@ -238,7 +247,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Validates the builder to ensure it is correct.
+         * Validate the builder to ensure it is correct.
          *
          * @throws IllegalArgumentException if there is an error with the builder arguments
          */
@@ -251,7 +260,7 @@ public class CsvTimeSeriesDataset extends TimeSeriesDataset {
         }
 
         /**
-         * Builds the new {@link CsvTimeSeriesDataset}
+         * Build the new {@link CsvTimeSeriesDataset}.
          *
          * @return the new {@link CsvTimeSeriesDataset}
          */

@@ -19,23 +19,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class ExpectedNumInstanceSampler extends InstanceSampler{
+/**
+ * Keeps track of the average time series length and adjusts the probability per time point such
+ * that on average `num_instances` training examples are generated per time series.
+ */
+public class ExpectedNumInstanceSampler extends InstanceSampler {
 
     private double numInstances;
     private int totalLength;
     private int n;
 
+    /**
+     * Construct a new instance of {@code ExpectedNumInstanceSampler}.
+     *
+     * @param axis the axis of the time series length
+     * @param minPast minimal pastime length
+     * @param minFuture minimal future time length
+     * @param numInstances number of training examples generated per time series on average
+     */
     public ExpectedNumInstanceSampler(int axis, int minPast, int minFuture, double numInstances) {
-        this(axis, minPast, minFuture, numInstances, 0, 0);
-    }
-
-    public ExpectedNumInstanceSampler(int axis, int minPast, int minFuture, double numInstances, int totalLength, int n) {
         super(axis, minPast, minFuture);
         this.numInstances = numInstances;
-        this.totalLength = totalLength;
-        this.n = n;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Integer> call(NDArray ts) {
         int[] bound = getBounds(ts);
@@ -56,7 +63,7 @@ public class ExpectedNumInstanceSampler extends InstanceSampler{
         double prob = numInstances / avgLength;
         List<Integer> indices = new ArrayList<>();
         Random random = new Random();
-        while (indices.size() == 0) {
+        while (indices.isEmpty()) {
             for (int i = 0; i < windowSize; i++) {
                 if (random.nextDouble() < prob) {
                     indices.add(i + bound[0]);

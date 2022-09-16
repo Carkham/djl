@@ -19,10 +19,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /** A utility class provides helper functions to create {@link TimeFeaturizer}. */
-public class TimeFeaturizers {
+public final class TimeFeaturizers {
+
+    private TimeFeaturizers() {}
 
     /**
-     * Constructs a {@link PatternTimeFeaturizer}.
+     * Construct a {@link PatternTimeFeaturizer}.
      *
      * @param datePattern the pattern that dates are found in the data table column
      * @return a new instance of {@link PatternTimeFeaturizer}
@@ -31,6 +33,12 @@ public class TimeFeaturizers {
         return new PatternTimeFeaturizer(datePattern);
     }
 
+    /**
+     * Construct a {@link ConstantTimeFeaturizer}.
+     *
+     * @param dateTime the date time to return for all
+     * @return a new instance of {@link ConstantTimeFeaturizer}
+     */
     public static Featurizer getConstantTimeFeaturizer(LocalDateTime dateTime) {
         return new ConstantTimeFeaturizer(dateTime);
     }
@@ -56,7 +64,7 @@ public class TimeFeaturizers {
         }
     }
 
-    /** A featurizer always return the same date. */
+    /** A featurizer always return a constant date. */
     public static final class ConstantTimeFeaturizer implements TimeFeaturizer {
 
         LocalDateTime dateTime;

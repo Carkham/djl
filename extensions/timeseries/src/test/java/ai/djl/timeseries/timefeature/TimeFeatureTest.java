@@ -12,14 +12,6 @@
  */
 package ai.djl.timeseries.timefeature;
 
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
-import ai.djl.ndarray.types.DataType;
-import ai.djl.ndarray.types.Shape;
-import ai.djl.timeseries.distribution.Distribution;
-import ai.djl.timeseries.distribution.output.DistributionOutput;
-import ai.djl.timeseries.distribution.output.NegativeBinomialOutput;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -145,25 +137,6 @@ public class TimeFeatureTest {
         for (String freq : testFreqs) {
             List<Integer> lags = Lag.getLagsForFreq(freq);
             Assert.assertEquals(lags, expectedLags.get(freq));
-        }
-    }
-
-    public static void main(String[] args) {
-        TimeFeatureTest test = new TimeFeatureTest();
-        test.testDistritbution();
-    }
-
-    @Test
-    public void testDistritbution() {
-        DistributionOutput distributionOutput = new NegativeBinomialOutput();
-        try (NDManager manager = NDManager.newBaseManager()) {
-            NDArray mu = manager.ones(new Shape(1));
-            NDArray alpha = manager.ones(new Shape(1));
-            mu.setName("mu");
-            alpha.setName("alpha");
-            Distribution neg = distributionOutput.distributionBuilder()
-                .setDistrArgs(new NDList(mu, alpha)).build();
-            System.out.println(neg.logProb(manager.arange(10f)).toDebugString());
         }
     }
 }

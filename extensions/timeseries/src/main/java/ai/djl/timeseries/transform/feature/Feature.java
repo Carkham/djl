@@ -144,6 +144,21 @@ public final class Feature {
         data.setField(outputField, NDArrays.stack(outputs));
     }
 
+    /**
+     * Adds on 'age' feature to the {@link TimeSeriesData}.
+     *
+     * <p>The age feature starts with a small value at the start of the time series and grows over
+     * time.
+     *
+     * @param manager default {@link NDManager}
+     * @param targetField Field with target values (array) of time series
+     * @param outputField Field name to use for the output
+     * @param predictionLength Prediction length
+     * @param logScale If set to true the age feature grows logarithmically otherwise linearly over
+     *     time.
+     * @param data the {@link TimeSeriesData} to operate on
+     * @return the result {@link TimeSeriesData}
+     */
     public static TimeSeriesData addAgeFeature(
             NDManager manager,
             FieldName targetField,
@@ -168,6 +183,7 @@ public final class Feature {
      * @param logScale If set to true the age feature grows logarithmically otherwise linearly over
      *     time.
      * @param data the {@link TimeSeriesData} to operate on
+     * @param isTrain Whether it is training
      * @return the result {@link TimeSeriesData}
      */
     public static TimeSeriesData addAgeFeature(

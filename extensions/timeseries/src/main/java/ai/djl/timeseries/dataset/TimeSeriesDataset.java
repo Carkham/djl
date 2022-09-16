@@ -23,28 +23,28 @@ import ai.djl.training.dataset.Record;
 
 import java.util.List;
 
+/** An abstract class for creating time series datasets. */
 public abstract class TimeSeriesDataset extends RandomAccessDataset {
 
     protected List<TimeSeriesTransform> transformation;
     protected int contextLength;
 
-    public static final FieldName[] DATASET_FIELD_NAMES =
-            new FieldName[] {
-                FieldName.TARGET,
-                FieldName.FEAT_STATIC_CAT,
-                FieldName.FEAT_STATIC_REAL,
-                FieldName.FEAT_DYNAMIC_CAT,
-                FieldName.FEAT_DYNAMIC_REAL
-            };
+    static final FieldName[] DATASET_FIELD_NAMES = {
+        FieldName.TARGET,
+        FieldName.FEAT_STATIC_CAT,
+        FieldName.FEAT_STATIC_REAL,
+        FieldName.FEAT_DYNAMIC_CAT,
+        FieldName.FEAT_DYNAMIC_REAL
+    };
 
-    public TimeSeriesDataset(TimeSeriesBuilder<?> builder) {
+    protected TimeSeriesDataset(TimeSeriesBuilder<?> builder) {
         super(builder);
         transformation = builder.transformation;
         contextLength = builder.contextLength;
     }
 
     /**
-     * {@code TimeseriesDataset} override the get function so that it can preprocess the feature
+     * {@code TimeSeriesDataset} override the get function so that it can preprocess the feature
      * data as timeseries package way.
      *
      * <p>{@inheritDoc}
@@ -58,7 +58,7 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
                 || !data.contains("FUTURE_" + FieldName.TARGET)) {
             throw new IllegalArgumentException(
                     "Transformation must include InstanceSampler to split data into past and future"
-                        + " part");
+                            + " part");
         }
 
         NDArray contextTarget = data.get("PAST_" + FieldName.TARGET).get("{}:", -contextLength + 1);
@@ -68,9 +68,22 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
         return new Record(data.toNDList(), label);
     }
 
+    /**
+     * Return the {@link TimeSeriesData} for the given index from the {@code TimeSeriesDataset}.
+     *
+     * @param manager the manager to create data
+     * @param index the index
+     * @return the {@link TimeSeriesData}
+     */
     public abstract TimeSeriesData getTimeSeriesData(NDManager manager, long index);
 
-    /** Apply the preprocee transformation on {@link TimeSeriesData}. */
+    /**
+     * Apply to preprocess transformation on {@link TimeSeriesData}.
+     *
+     * @param manager default {@link NDManager}
+     * @param input data the {@link TimeSeriesData} to operate on
+     * @return the transformed data
+     */
     private TimeSeriesData apply(NDManager manager, TimeSeriesData input) {
         try (NDManager scope = manager.newSubManager()) {
             input.values().forEach(array -> array.tempAttach(scope));
@@ -82,17 +95,34 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
         return input;
     }
 
+    /**
+     * Used to build a {@code TimeSeriesDataset}.
+     *
+     * @param <T> the builder type
+     */
     public abstract static class TimeSeriesBuilder<T extends TimeSeriesBuilder<T>>
             extends RandomAccessDataset.BaseBuilder<T> {
 
         protected List<TimeSeriesTransform> transformation;
         protected int contextLength;
 
+        /**
+         * Set the transformation for data preprocess.
+         *
+         * @param transformation the transformation
+         * @return this builder
+         */
         public T setTransformation(List<TimeSeriesTransform> transformation) {
             this.transformation = transformation;
             return self();
         }
 
+        /**
+         * Set the model prediction context length.
+         *
+         * @param contextLength the context length
+         * @return this builder
+         */
         public T setContextLength(int contextLength) {
             this.contextLength = contextLength;
             return self();

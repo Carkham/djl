@@ -13,7 +13,6 @@
 
 package ai.djl.timeseries.dataset;
 
-import ai.djl.basicdataset.tabular.AirfoilRandomAccess;
 import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.basicdataset.tabular.utils.Featurizers;
 import ai.djl.repository.MRL;
@@ -41,7 +40,9 @@ import java.util.Set;
  * M5 Forecasting - Accuracy from <a
  * href="https://www.kaggle.com/competitions/m5-forecasting-accuracy">https://www.kaggle.com/competitions/m5-forecasting-accuracy</a>
  *
- * <p>
+ * <p>To improve the model performance, we coarse graining target of the dataset by summing the sale
+ * amount every seven days. And set the column names of sum as 'w_i'. This can reduce occurrence of
+ * invalid values 0 and reduce the noise learned by model.
  */
 public class M5Forecast extends CsvTimeSeriesDataset {
 
@@ -81,7 +82,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
     }
 
     /**
-     * Return the cardinality of the dataset
+     * Return the cardinality of the dataset.
      *
      * @return the cardinality of the dataset
      */
@@ -115,6 +116,7 @@ public class M5Forecast extends CsvTimeSeriesDataset {
         }
     }
 
+    /** Used to build a {@code M5Forecast}. */
     public static class Builder extends CsvBuilder<Builder> {
 
         Repository repository;
@@ -134,25 +136,53 @@ public class M5Forecast extends CsvTimeSeriesDataset {
             cardinality = new ArrayList<>();
         }
 
+        /** {@inheritDoc} */
         @Override
         protected Builder self() {
             return this;
         }
 
+        /**
+         * Set the repository containing the path.
+         *
+         * @param repository the repository containing the path
+         * @return this builder
+         */
         public Builder setRepository(Repository repository) {
             this.repository = repository;
             return this;
         }
 
+        /**
+         * Set the optional usage.
+         *
+         * @param usage the usage
+         * @return this builder
+         */
         public Builder optUsage(Usage usage) {
             this.usage = usage;
             return this;
         }
 
+        /**
+         * Add a feature to the features set of the filed name.
+         *
+         * @param name the name of the feature
+         * @param fieldName the field name
+         * @return this builder
+         */
         public Builder addFeature(String name, FieldName fieldName) {
             return addFeature(name, fieldName, false);
         }
 
+        /**
+         * Add a feature to the features set of the filed name with onehot encoding.
+         *
+         * @param name the name of the feature
+         * @param fieldName the field name
+         * @param onehotEncode true if use onehot encoding
+         * @return this builder
+         */
         public Builder addFeature(String name, FieldName fieldName, boolean onehotEncode) {
             parseFeatures();
             if (mf.categorical.contains(name)) {
@@ -168,6 +198,22 @@ public class M5Forecast extends CsvTimeSeriesDataset {
             return addFieldFeature(fieldName, new Feature(name, true));
         }
 
+        /**
+         * Returns the available features of this dataset.
+         *
+         * @return a list of feature names
+         */
+        public List<String> getAvailableFeatures() {
+            parseFeatures();
+            return mf.featureArray;
+        }
+
+        /**
+         * Build the new {@code M5Forecast}.
+         *
+         * @return the new {@code M5Forecast}
+         */
+        @Override
         public M5Forecast build() {
             validate();
             return new M5Forecast(this);

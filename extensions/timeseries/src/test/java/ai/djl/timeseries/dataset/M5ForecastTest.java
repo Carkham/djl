@@ -14,6 +14,7 @@
 package ai.djl.timeseries.dataset;
 
 import ai.djl.Model;
+import ai.djl.basicdataset.tabular.utils.Feature;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
@@ -36,6 +37,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 
 public class M5ForecastTest {
 
@@ -72,6 +74,12 @@ public class M5ForecastTest {
                             .addFeature("cat_id", FieldName.FEAT_STATIC_CAT)
                             .addFeature("dept_id", FieldName.FEAT_STATIC_CAT)
                             .addFeature("item_id", FieldName.FEAT_STATIC_CAT)
+                            .addFieldFeature(
+                                    FieldName.START,
+                                    new Feature(
+                                            "date",
+                                            TimeFeaturizers.getConstantTimeFeaturizer(
+                                                    LocalDateTime.parse("2011-01-29T00:00"))))
                             .build();
 
             m5Forecast.prepare();

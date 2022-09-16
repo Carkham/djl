@@ -18,13 +18,17 @@ import ai.djl.basicdataset.tabular.utils.Featurizer;
 
 import java.time.LocalDateTime;
 
-/** An interface that convert String to {@link LocalDateTime} as the start field of {@link ai.djl.timeseries.TimeSeriesData}. */
+/**
+ * An interface that convert String to {@link LocalDateTime} as the start field of {@link
+ * ai.djl.timeseries.TimeSeriesData}.
+ */
 public interface TimeFeaturizer extends Featurizer {
 
     /** {@inheritDoc} */
     @Override
     default void featurize(DynamicBuffer buf, String input) {
-        throw new IllegalArgumentException("Please use the other featurize for DateTimeFeaturizers");
+        throw new IllegalArgumentException(
+                "Please use the other featurize for DateTimeFeaturizers");
     }
 
     /**
