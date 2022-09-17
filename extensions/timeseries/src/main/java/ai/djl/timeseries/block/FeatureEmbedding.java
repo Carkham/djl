@@ -74,14 +74,14 @@ public final class FeatureEmbedding extends AbstractBlock {
         return new Builder();
     }
 
-    /** The builder to construct a {@link FeatureEmbedding} type of {@link ai.djl.nn.Block} */
+    /** The builder to construct a {@link FeatureEmbedding} type of {@link ai.djl.nn.Block}. */
     public static final class Builder {
 
         private int embeddingSize;
         private int numEmbeddings;
 
         /**
-         * Sets the size of the embeddings
+         * Sets the size of the embeddings.
          *
          * @param embeddingSize the size of the embeddings
          * @return this Builder

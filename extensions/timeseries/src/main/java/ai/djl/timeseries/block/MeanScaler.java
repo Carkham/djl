@@ -19,6 +19,10 @@ import ai.djl.ndarray.NDList;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
+/**
+ * A class computes a scaling factor as the weighted average absolute value along dimension {@code
+ * dim}, and scales the data accordingly.
+ */
 public class MeanScaler extends Scaler {
 
     private float minimumScale;
@@ -60,10 +64,16 @@ public class MeanScaler extends Scaler {
         return new NDList(data.div(scale), keepDim ? scale : scale.squeeze(dim));
     }
 
+    /**
+     * Create a builder to build a {@code MeanScaler}.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** The builder to construct a {@code MeanScaler}. */
     public static final class Builder extends ScalerBuilder<Builder> {
 
         private float minimumScale = 1e-10f;
@@ -71,7 +81,7 @@ public class MeanScaler extends Scaler {
         Builder() {}
 
         /**
-         * Sets the minimum scalar of the data
+         * Sets the minimum scalar of the data.
          *
          * @param minimumScale the minimum value
          * @return this Builder

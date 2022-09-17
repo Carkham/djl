@@ -17,6 +17,7 @@ import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
 import ai.djl.util.Preconditions;
 
+/** An abstract class used to scale data. */
 public abstract class Scaler extends AbstractBlock {
 
     private static final byte VERSION = 1;
@@ -30,6 +31,7 @@ public abstract class Scaler extends AbstractBlock {
         keepDim = builder.keepDim;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Shape[] getOutputShapes(Shape[] inputShapes) {
         Shape inputShape = inputShapes[0];
@@ -46,10 +48,15 @@ public abstract class Scaler extends AbstractBlock {
         return new Shape[] {inputShape, outputShape};
     }
 
+    /**
+     * A builder to extend for all classes extend the {@link Scaler}.
+     *
+     * @param <T> the concrete builder type
+     */
     public abstract static class ScalerBuilder<T extends ScalerBuilder<T>> {
 
         protected int dim;
-        protected boolean keepDim = false;
+        protected boolean keepDim;
 
         /**
          * Set the dim to scale.

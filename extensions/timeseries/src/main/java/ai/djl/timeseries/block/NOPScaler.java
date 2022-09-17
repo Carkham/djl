@@ -18,6 +18,10 @@ import ai.djl.ndarray.NDList;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
+/**
+ * A class assigns a scaling factor equal to 1 along dimension {@code dim}, and therefore applies no
+ * scaling to the input data.
+ */
 public class NOPScaler extends Scaler {
 
     NOPScaler(Builder builder) {
@@ -36,10 +40,16 @@ public class NOPScaler extends Scaler {
         return new NDList(data, scale);
     }
 
+    /**
+     * Create a builder to build a {@code NopScaler}.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** The builder to construct a {@code NopScaler}. */
     public static final class Builder extends ScalerBuilder<Builder> {
 
         /** {@inheritDoc} */

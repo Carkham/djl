@@ -20,7 +20,6 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.AbstractBlock;
-import ai.djl.nn.Block;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
@@ -81,7 +80,7 @@ public class FeatureEmbedder extends AbstractBlock {
     @Override
     public Shape[] getOutputShapes(Shape[] inputShapes) {
         Shape inputShape = inputShapes[0];
-        Shape[] embedInputShapes = new Shape[] {inputShape.slice(0, inputShape.dimension() - 1)};
+        Shape[] embedInputShapes = {inputShape.slice(0, inputShape.dimension() - 1)};
         long embedSizes = 0;
         for (FeatureEmbedding embed : embedders) {
             embedSizes += embed.getOutputShapes(embedInputShapes)[0].tail();
@@ -91,9 +90,10 @@ public class FeatureEmbedder extends AbstractBlock {
 
     /** {@inheritDoc} */
     @Override
-    protected void initializeChildBlocks(NDManager manager, DataType dataType, Shape... inputShapes) {
-        for (Block block : embedders) {
-            block.initialize(manager, dataType, inputShapes);
+    protected void initializeChildBlocks(
+            NDManager manager, DataType dataType, Shape... inputShapes) {
+        for (FeatureEmbedding embed : embedders) {
+            embed.initialize(manager, dataType, inputShapes);
         }
     }
 
@@ -104,10 +104,16 @@ public class FeatureEmbedder extends AbstractBlock {
         return embedding;
     }
 
+    /**
+     * Return a builder to build an {@code FeatureEmbedder}.
+     *
+     * @return a new builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** The builder to construct a {@link FeatureEmbedder} type of {@link ai.djl.nn.Block}. */
     public static final class Builder {
 
         private List<Integer> cardinalities;
@@ -141,7 +147,7 @@ public class FeatureEmbedder extends AbstractBlock {
          * @return the constructed {@code FeatureEmbedder}
          */
         public FeatureEmbedder build() {
-            if (cardinalities.size() <= 0) {
+            if (cardinalities.isEmpty()) {
                 throw new IllegalArgumentException(
                         "Length of 'cardinalities' list must be greater than zero");
             }
