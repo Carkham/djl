@@ -239,15 +239,17 @@ public abstract class DeepARNetwork extends AbstractBlock {
 
             NDList outputs = rnn.forward(ps, new NDList(rnnInput), training);
             NDArray output = outputs.get(0);
-            NDArray newState = outputs.get(1);
+            NDArray hiddenState = outputs.get(1);
+            NDArray cellState = outputs.get(2);
 
             NDList params = paramProj.forward(ps, new NDList(output), training);
 
             scale.setName("scale");
             output.setName("output");
             staticFeat.setName("static_feat");
-            newState.setName("new_state");
-            return scope.ret(params.addAll(new NDList(scale, output, staticFeat, newState)));
+            hiddenState.setName("hidden_state");
+            cellState.setName("cell_state");
+            return scope.ret(params.addAll(new NDList(scale, output, staticFeat, hiddenState, cellState)));
         }
     }
 
