@@ -39,6 +39,15 @@ public abstract class Distribution {
     public abstract NDArray sample(int numSamples);
 
     /**
+     * Draw samples from the distribution.
+     *
+     * @return a sampled {@link NDArray}
+     */
+    public NDArray sample() {
+        return sample(0);
+    }
+
+    /**
      * Return the mean of the distribution.
      *
      * @return the mean of the distribution

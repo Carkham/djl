@@ -56,9 +56,8 @@ public abstract class TimeSeriesDataset extends RandomAccessDataset {
         data = apply(manager, data);
         if (!data.contains("PAST_" + FieldName.TARGET)
                 || !data.contains("FUTURE_" + FieldName.TARGET)) {
-            throw new IllegalArgumentException(
-                    "Transformation must include InstanceSampler to split data into past and future"
-                            + " part");
+            // For inference
+            return new Record(data.toNDList(), new NDList());
         }
 
         NDArray contextTarget = data.get("PAST_" + FieldName.TARGET).get("{}:", -contextLength + 1);

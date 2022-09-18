@@ -21,10 +21,6 @@ import ai.djl.timeseries.distribution.Distribution;
 import ai.djl.training.ParameterStore;
 import ai.djl.util.PairList;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /** A deepar implements for prediction. */
 public class DeepARPredictionNetwork extends DeepARNetwork {
 
@@ -39,12 +35,23 @@ public class DeepARPredictionNetwork extends DeepARNetwork {
             NDList inputs,
             boolean training,
             PairList<String, Object> params) {
-        NDList unrollOutput = unrollLaggedRnn(parameterStore, inputs, training);
+        NDList unrollInputs = new NDList(
+                inputs.get(0), // feat_static_cat
+                inputs.get(1), // feat_static_real
+                inputs.get(2), // past_time_feat
+                inputs.get(3), // past_target
+                inputs.get(4), // past_observed_value
+                inputs.get(5).get(":, :1") // future_time_feat
+        );
+        NDList unrollOutput = unrollLaggedRnn(parameterStore, unrollInputs, training);
         NDList state = new NDList(unrollOutput.get("hidden_state"), unrollOutput.get("cell_state"));
         String[] argNames = distrOutput.getArgsArray();
-        NDList args = new NDList(argNames.length);
+
+        NDList repeatedArgs = new NDList(argNames.length);
         for (String argName : distrOutput.getArgsArray()) {
-            args.add(unrollOutput.get(argName));
+            NDArray repeatedArg = unrollOutput.get(argName).repeat(0, numParallelSamples);
+            repeatedArg.setName(argName);
+            repeatedArgs.add(repeatedArg);
         }
 
         NDArray repeatedScale = unrollOutput.get("scale").repeat(0, numParallelSamples);
@@ -54,11 +61,11 @@ public class DeepARPredictionNetwork extends DeepARNetwork {
 
         NDList repeatedState = new NDList(state.size());
         for (NDArray s : state) {
-            repeatedState.add(s.repeat(0, numParallelSamples));
+            repeatedState.add(s.repeat(1, numParallelSamples));
         }
 
-        Distribution distr = outputDistribution(args, unrollOutput.get("scale"), 1);
-        NDArray nextSample = distr.sample(numParallelSamples);
+        Distribution distr = outputDistribution(repeatedArgs, repeatedScale, 1);
+        NDArray nextSample = distr.sample();
         NDList futureSamples = new NDList(predictionLength);
         futureSamples.add(nextSample);
         for (int k = 1; k < predictionLength; k++) {
@@ -73,9 +80,9 @@ public class DeepARPredictionNetwork extends DeepARNetwork {
 
             repeatedPastTarget = repeatedPastTarget.concat(scaledNextSample, 1);
 
-            args = paramProj.forward(parameterStore, new NDList(output), training);
-            distr = outputDistribution(args, repeatedScale, 0);
-            nextSample = distr.sample(numParallelSamples);
+            repeatedArgs = paramProj.forward(parameterStore, new NDList(output), training);
+            distr = outputDistribution(repeatedArgs, repeatedScale, 0);
+            nextSample = distr.sample();
             futureSamples.add(nextSample);
         }
 
@@ -96,6 +103,7 @@ public class DeepARPredictionNetwork extends DeepARNetwork {
             for (NDArray p : params) {
                 NDArray slicedP = p.get(":, {}:", -trailingN);
                 slicedP.setName(p.getName());
+                slicedParams.add(slicedP);
             }
         }
         return distrOutput.distributionBuilder()

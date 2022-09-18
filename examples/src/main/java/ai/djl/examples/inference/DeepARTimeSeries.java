@@ -234,7 +234,7 @@ public final class DeepARTimeSeries {
         }
     }
 
-    private static final class M5Evaluator {
+    public static final class M5Evaluator {
         private float[] quantiles;
         Map<String, Float> totalMetrics;
         Map<String, Integer> totalNum;

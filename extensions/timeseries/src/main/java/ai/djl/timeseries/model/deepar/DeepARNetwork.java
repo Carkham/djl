@@ -204,7 +204,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
             NDArray pastTarget = inputs.get(3);
             NDArray pastObservedValues = inputs.get(4);
             NDArray futureTimeFeat = inputs.get(5);
-            NDArray futureTarget = inputs.get(6);
+            NDArray futureTarget = inputs.size() > 6 ? inputs.get(6) : null;
 
             NDArray context = pastTarget.get(":,{}:", -contextLength);
             NDArray observedContext = pastObservedValues.get(":,{}:", -contextLength);
@@ -221,7 +221,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
                     embedder.forward(ps, new NDList(featStaticCat), training).singletonOrThrow();
             NDArray staticFeat =
                     NDArrays.concat(
-                            new NDList(Arrays.asList(embeddedCat, featStaticReal, scale.log())), 1);
+                            new NDList(embeddedCat, featStaticReal, scale.log()), 1);
             NDArray expandedStaticFeat =
                     staticFeat.expandDims(1).repeat(1, sequence.getShape().get(1));
 
@@ -428,7 +428,7 @@ public abstract class DeepARNetwork extends AbstractBlock {
         private String freq;
         private int contextLength;
         private int predictionLength;
-        private int numParallelSamples;
+        private int numParallelSamples = 100;
         private int numLayers = 2;
         private int hiddenSize = 40;
         private float dropRate = 0.1f;

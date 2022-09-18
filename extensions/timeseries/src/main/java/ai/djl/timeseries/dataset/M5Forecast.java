@@ -103,14 +103,12 @@ public class M5Forecast extends CsvTimeSeriesDataset {
         String usagePath;
         switch (usage) {
             case TRAIN:
-                usagePath = "sales_train_validation.csv";
-                return usagePath;
-            case VALIDATION:
-                usagePath = "sales_train_evaluation.csv";
+                usagePath = "weekly_sales_train_validation.csv";
                 return usagePath;
             case TEST:
-                usagePath = "sales_train_process.csv";
+                usagePath = "weekly_sales_train_evaluation.csv";
                 return usagePath;
+            case VALIDATION:
             default:
                 throw new UnsupportedOperationException("Data not available.");
         }
