@@ -35,6 +35,7 @@ import ai.djl.timeseries.dataset.TimeFeaturizers;
 import ai.djl.timeseries.distribution.DistributionLoss;
 import ai.djl.timeseries.distribution.output.DistributionOutput;
 import ai.djl.timeseries.distribution.output.NegativeBinomialOutput;
+import ai.djl.timeseries.distribution.output.NegativeBinomialTorchOutput;
 import ai.djl.timeseries.distribution.output.StudentTOutput;
 import ai.djl.timeseries.evaluator.RMSSE;
 import ai.djl.timeseries.model.deepar.DeepARNetwork;
@@ -87,7 +88,7 @@ public class TrainTimeSeries {
 
         Arguments arguments = new Arguments().parseArgs(args);
         try (Model model = Model.newInstance("deepar")) {
-            DistributionOutput distributionOutput = new NegativeBinomialOutput();
+            DistributionOutput distributionOutput = new NegativeBinomialTorchOutput();
             DefaultTrainingConfig config = setupTrainingConfig(arguments, distributionOutput);
 
             NDManager manager = model.getNDManager();
